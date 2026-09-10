@@ -1,3 +1,5 @@
+"""Mocked transport tests for SSH safety and cancellation behavior."""
+
 from threading import Event
 
 from app.core import command_runner
@@ -7,6 +9,7 @@ from app.utils import crypto
 
 
 def _device():
+    """Create a device with encrypted test credentials and no live dependency."""
     return Device(
         name="lab-router",
         host="192.0.2.1",

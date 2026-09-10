@@ -3,6 +3,8 @@
 For the ISP-facing product overview, capabilities, use cases, security position,
 and evolving roadmap, see [ISP_NETOPS_PRODUCT_OVERVIEW.md](ISP_NETOPS_PRODUCT_OVERVIEW.md).
 For the step-by-step NOC operating procedure, see [NOC_OPERATOR_MANUAL.md](NOC_OPERATOR_MANUAL.md).
+For architecture, installation, troubleshooting, testing, and extension guidance,
+see [DEVELOPER_TECHNICAL_GUIDE.md](DEVELOPER_TECHNICAL_GUIDE.md).
 
 A lightweight, deployable-on-a-laptop desktop app for NOC/network engineers
 to run **bulk show/read-only commands** across multiple routers from
@@ -98,21 +100,21 @@ device names before storing credentials encrypted in the local inventory.
 Treat the completed CSV as sensitive because it contains passwords, and delete
 or secure it after import according to your ISP's data-handling policy.
 
-## Jump / bastion server support
+## Automation Server / bastion support
 
 Many NOC environments only allow direct SSH to a jump server, which in
-turn reaches the routers. Configure this under **Jump Server > Configure
-Jump Server...**:
+turn reaches the routers. Configure this under **Automation Server > Configure
+Automation Server...**:
 
-- **Route device connections through jump server** — toggle on/off.
-- **Host/Port/Username/Password** — credentials for the jump host itself.
-- **Test Connection** — verifies login to the jump host without running
+- **Route device connections through automation server** — toggle on/off.
+- **Host/Port/Username/Password** — credentials for the automation server.
+- **Test Connection** — verifies login to the automation server without running
   any device commands.
 
 When enabled, the app logs into the jump host **once per run** and opens
 one proxied SSH channel per device through it (standard SSH bastion/proxy
 pattern) — each router still authenticates with its own credentials from
-the device inventory. The jump host's credentials/config are encrypted at
+the device inventory. The automation server's credentials/config are encrypted at
 rest the same way device passwords are.
 
 ## Results and reporting
@@ -123,9 +125,8 @@ rest the same way device passwords are.
   status, commands, and per-device output) is automatically saved after
   every run to `%APPDATA%\ISPNetOpsTool\reports\run_<timestamp>.txt` — no
   manual step required, useful for after-the-fact audit/ticket evidence.
-- Click **Export results...** to also save that same report plus one text
-  file per device to a folder of your choice (e.g. for attaching to a
-  ticket).
+- Click **Export results...** to save a summary report plus separate parsed
+  and raw files per device to a folder of your choice.
 - Command output is parsed with TextFSM (`ntc-templates`) when a matching
   template exists, giving structured, readable fields instead of raw CLI
   text; it falls back to raw output automatically when no template matches.

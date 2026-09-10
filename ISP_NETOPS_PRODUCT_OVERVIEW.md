@@ -409,6 +409,8 @@ Its practical position is between manual terminal work and a larger network-auto
 ## Living Document
 
 For day-to-day NOC operation, see the [NOC_OPERATOR_MANUAL.md](NOC_OPERATOR_MANUAL.md).
+For engineering installation, architecture, troubleshooting, and extension guidance,
+see the [DEVELOPER_TECHNICAL_GUIDE.md](DEVELOPER_TECHNICAL_GUIDE.md).
 
 This document is maintained as the product evolves.
 

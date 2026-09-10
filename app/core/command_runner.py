@@ -36,7 +36,11 @@ class DeviceResult:
 
 
 def _run_single_command(conn, cmd: str, timeout: int) -> tuple[str, str]:
-    """Capture raw CLI text once, then parse that text for the GUI display."""
+    """Capture raw CLI text once, then parse that text for the GUI display.
+
+    Keeping one capture is important: running a command twice can produce
+    different state and would make the parsed and raw artifacts disagree.
+    """
     raw = str(conn.send_command(cmd, read_timeout=timeout, use_textfsm=False))
     try:
         parsed = parse_output(
@@ -95,6 +99,7 @@ def run_commands_on_device(
         "password": device.get_password(),
         "timeout": timeout,
         "fast_cli": False,
+        # Never silently trust a new device key; enrollment is an explicit step.
         "ssh_strict": True,
         "system_host_keys": True,
         "alt_host_keys": KNOWN_HOSTS_FILE.exists(),
@@ -124,6 +129,8 @@ def run_commands_on_device(
             if secret:
                 conn.enable()
             for cmd in commands:
+                # Cancellation is cooperative so an active SSH exchange is not
+                # torn down in the middle of a device command.
                 if cancel_event and cancel_event.is_set():
                     duration = time.monotonic() - start
                     return DeviceResult(

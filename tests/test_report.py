@@ -1,3 +1,5 @@
+"""Compatibility tests for parsed, raw, and summary report formats."""
+
 from app.core.command_runner import DeviceResult
 from app.core.report import build_text_report, format_device_output
 

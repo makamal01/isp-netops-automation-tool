@@ -14,6 +14,7 @@ VENDOR_NAMES = list(VENDOR_MAP.keys())
 
 
 def to_netmiko_type(vendor_name: str) -> str:
+    """Map the user-facing vendor label to a supported Netmiko driver."""
     try:
         return VENDOR_MAP[vendor_name]
     except KeyError:

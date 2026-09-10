@@ -291,6 +291,7 @@ class MainWindow(QMainWindow):
     # ---------- Command execution ----------
 
     def _on_run_clicked(self):
+        """Validate scope, reset run state, and start the worker-thread execution."""
         checked_devices = [
             self.device_manager.list_devices()[i]
             for i in range(self.device_list.count())
@@ -352,12 +353,14 @@ class MainWindow(QMainWindow):
         self.thread.start()
 
     def _on_cancel_clicked(self):
+        """Request cooperative cancellation; active network calls are not force-killed."""
         if self.cancel_event:
             self.cancel_event.set()
             self.cancel_btn.setEnabled(False)
             self.status_label.setText("Cancelling queued devices...")
 
     def _on_retry_failed_clicked(self):
+        """Rerun the last command set only for devices whose prior result failed."""
         failed_names = {
             name for name, result in self.results_by_device.items() if not result.success
         }
@@ -382,6 +385,7 @@ class MainWindow(QMainWindow):
             self._on_result_row_selected()
 
     def _on_run_finished(self, results):
+        """Restore controls, summarize completion, audit the run, and save metadata."""
         self.run_btn.setEnabled(True)
         self.cancel_btn.setEnabled(False)
         self.export_btn.setEnabled(True)
@@ -401,6 +405,7 @@ class MainWindow(QMainWindow):
         self._auto_save_report()
 
     def _on_run_error(self, message: str):
+        """Handle a worker-level Automation Server failure separately from device results."""
         self.run_btn.setEnabled(True)
         self.cancel_btn.setEnabled(False)
         self.status_label.setText("Run failed.")

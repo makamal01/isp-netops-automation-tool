@@ -13,6 +13,7 @@ def _command_heading(command: str) -> str:
 
 
 def _command_output(output: str, command: str, commands: List[str]) -> str:
+    """Extract one command block from either current raw or legacy output."""
     marker = f"--- {command} ---"
     heading = _command_heading(command)
     marker_start = output.find(marker)
@@ -71,6 +72,7 @@ def build_text_report(
     safe_mode: bool,
     include_output: bool = True,
 ) -> str:
+    """Build a report while optionally omitting output duplicated in export files."""
     lines = []
     run_at = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     success_count = sum(1 for r in results_by_device.values() if r.success)

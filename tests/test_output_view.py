@@ -1,3 +1,5 @@
+"""Regression tests for result-row selection and Output-pane rendering."""
+
 import pytest
 from PySide6.QtWidgets import QApplication, QTableWidget, QTableWidgetItem, QTextEdit
 
@@ -11,6 +13,7 @@ def qapp():
 
 
 def _build_window(device_name, result, qapp):
+    """Build the minimal Qt object graph needed without running full MainWindow setup."""
     window = MainWindow.__new__(MainWindow)
     window.results_table = QTableWidget(1, 3)
     window.results_table.setItem(0, 0, QTableWidgetItem(device_name))

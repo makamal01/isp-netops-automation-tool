@@ -21,6 +21,7 @@ def get_app_data_dir() -> Path:
 
 
 def atomic_write_text(path: Path, content: str):
+    """Replace a local store in one filesystem operation after writing a temp file."""
     temporary_path = path.with_name(f"{path.name}.tmp")
     temporary_path.write_text(content, encoding="utf-8")
     temporary_path.replace(path)

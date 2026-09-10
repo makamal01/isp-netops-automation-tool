@@ -52,6 +52,7 @@ class LoginWindow(QDialog):
         self.setLayout(layout)
 
     def _on_submit(self):
+        """Handle first-run creation, lockout checks, password auth, and MFA in order."""
         username = self.username_edit.text().strip()
         password = self.password_edit.text()
 
@@ -101,6 +102,7 @@ class LoginWindow(QDialog):
         self.accept()
 
     def _offer_mfa_enrollment(self, username: str):
+        """Offer optional enrollment after password auth without blocking login."""
         choice = QMessageBox.question(
             self, "Enable MFA?",
             "Multi-factor authentication adds an extra layer of security.\n"

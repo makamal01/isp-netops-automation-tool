@@ -25,6 +25,7 @@ def validate_device_fields(
     port: int,
     existing_names=None,
 ):
+    """Validate shared inventory rules before manual or CSV persistence."""
     errors = []
     if not name or len(name) > 128:
         errors.append("Device name is required and must be 128 characters or fewer.")
@@ -60,9 +61,11 @@ class Device:
     secret_encrypted: str = ""  # enable/privileged-mode password, if needed
 
     def get_password(self) -> str:
+        """Decrypt the device password only when a connection needs it."""
         return crypto.decrypt(self.password_encrypted)
 
     def get_secret(self) -> str:
+        """Return the optional privileged-mode secret, decrypted on demand."""
         return crypto.decrypt(self.secret_encrypted) if self.secret_encrypted else ""
 
 
@@ -113,6 +116,7 @@ class DeviceManager:
         return device
 
     def update_device(self, index: int, **kwargs):
+        """Update inventory fields while preserving an omitted password/secret."""
         device = self.devices[index]
         if "password" in kwargs:
             device.password_encrypted = crypto.encrypt(kwargs.pop("password"))
@@ -134,12 +138,11 @@ class DeviceManager:
             csv.writer(file).writerow(CSV_COLUMNS)
 
     def import_from_csv(self, path: str) -> Tuple[int, List[str]]:
-        """Bulk-add devices from a CSV file.
+        """Bulk-add valid CSV rows and return a count plus non-fatal row errors.
 
         Expected columns: name, host, vendor, username, password
         Optional columns: port, secret
-        Returns (added_count, error_messages) - malformed rows are skipped
-        and reported, valid rows are still imported.
+        Malformed rows are skipped and reported; valid rows are still imported.
         """
         errors: List[str] = []
         added = 0

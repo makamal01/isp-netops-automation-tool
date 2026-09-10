@@ -47,6 +47,7 @@ class JumpServerManager:
         return self.config
 
     def save(self, enabled: bool, host: str, port: int, username: str, password: Optional[str]):
+        """Persist settings; ``password=None`` intentionally retains the stored secret."""
         self.config.enabled = enabled
         self.config.host = host
         self.config.port = port

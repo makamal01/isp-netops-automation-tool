@@ -1,8 +1,8 @@
-"""Guard rail to keep this tool read-only for now: blocks anything that
-looks like a configuration or disruptive command, regardless of vendor
-syntax (IOS/IOS-XE/IOS-XR, VRP, SR OS). Engineers running show/display
-commands are unaffected. Admins can disable this per-run via the GUI
-"safe mode" checkbox once config support is intentionally added later.
+"""Guard rail for read-only operations: reject obvious disruptive commands.
+
+Safe mode is a per-run option in the GUI. This is a pattern filter, not a
+complete vendor-aware allowlist, so write-enabled workflows need a separate
+authorization design before they are introduced.
 """
 import re
 
@@ -22,9 +22,6 @@ _BLOCKED_PATTERNS = [
 ]
 
 _BLOCKED_RE = re.compile("|".join(_BLOCKED_PATTERNS), re.IGNORECASE)
-
-ALLOWED_PREFIXES = ("show", "display", "get", "ping", "traceroute", "info")
-
 
 def is_command_safe(command: str) -> bool:
     cmd = command.strip()

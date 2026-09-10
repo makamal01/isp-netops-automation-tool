@@ -81,6 +81,7 @@ class AuthManager:
         return max(1, int((locked_until - datetime.now()).total_seconds() // 60) + 1)
 
     def verify_password(self, username: str, password: str) -> bool:
+        """Check credentials and persist lockout/audit state for every attempt."""
         user = self._users.get(username)
         if not user:
             audit_log.log_event("login_failed", username=username, detail="unknown user")
@@ -112,6 +113,7 @@ class AuthManager:
         audit_log.log_event("password_changed", username=username)
 
     def enable_mfa(self, username: str, mfa_secret: str):
+        """Encrypt and persist the TOTP seed; the plaintext seed is never stored."""
         user = self._users[username]
         user.mfa_secret_encrypted = crypto.encrypt(mfa_secret)
         user.mfa_enabled = True
@@ -119,6 +121,7 @@ class AuthManager:
         audit_log.log_event("mfa_enabled", username=username)
 
     def disable_mfa(self, username: str):
+        """Remove MFA enrollment and its encrypted seed from the local account."""
         user = self._users[username]
         user.mfa_enabled = False
         user.mfa_secret_encrypted = ""
@@ -126,6 +129,7 @@ class AuthManager:
         audit_log.log_event("mfa_disabled", username=username)
 
     def get_mfa_secret(self, username: str) -> Optional[str]:
+        """Decrypt an enrolled TOTP seed only at the verification boundary."""
         user = self._users.get(username)
         if not user or not user.mfa_secret_encrypted:
             return None
