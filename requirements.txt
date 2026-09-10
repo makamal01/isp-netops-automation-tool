@@ -1,0 +1,10 @@
+PySide6>=6.6
+netmiko>=4.3
+ntc-templates>=6.0
+paramiko>=3.4
+pyotp>=2.9
+qrcode[pil]>=7.4
+bcrypt>=4.1
+cryptography>=42.0
+PyYAML>=6.0
+pytest>=8.0
