@@ -14,7 +14,7 @@ from netmiko import ConnectHandler
 from netmiko.exceptions import NetmikoTimeoutException, NetmikoAuthenticationException
 from ntc_templates.parse import parse_output
 
-from app.core.vendors import to_netmiko_type
+from app.core.vendors import to_netmiko_type, to_parse_platform
 from app.core.device_manager import Device
 from app.core.jump_server import JumpServerConfig
 from app.config import DEFAULT_SSH_TIMEOUT, DEFAULT_MAX_WORKERS, KNOWN_HOSTS_FILE
@@ -44,7 +44,7 @@ def _run_single_command(conn, cmd: str, timeout: int) -> tuple[str, str]:
     raw = str(conn.send_command(cmd, read_timeout=timeout, use_textfsm=False))
     try:
         parsed = parse_output(
-            platform=conn.device_type,
+            platform=to_parse_platform(conn.device_type),
             command=cmd,
             data=raw,
             try_fallback=True,
