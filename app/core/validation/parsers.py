@@ -17,8 +17,8 @@ _STAGE_PATTERNS = {
             r"route.*present",
         ],
         "negative": [
-            r"DOWN",
-            r"INIT",
+            r"\bDOWN\b",
+            r"\bINIT\b",
             r"DOWN\s*\|",
             r"No route",
             r"not found",
@@ -29,6 +29,7 @@ _STAGE_PATTERNS = {
     "mpls_signaling": {
         "positive": [
             r"Operational",
+            r"\bOper\b",  # Cisco IOS-XE abbreviates "State: Operational" to "State: Oper"
             r"Up",
             r"Established",
             r"LDP.*operational",
@@ -36,12 +37,22 @@ _STAGE_PATTERNS = {
             r"label.*bound",
         ],
         "negative": [
-            r"Down",
+            r"\bDown\b",  # word-bounded: LDP's "Downstream" label mode is healthy, not a failure
             r"Idle",
             r"Init",
             r"No LDP",
             r"session.*down",
             r"not established",
+        ],
+        # RSVP-TE/tunnel process being off is a normal LDP-only deployment
+        # choice, not a signaling failure. These phrases are stripped before
+        # negative-keyword matching so LDP-only labs (e.g. "RSVP Process:
+        # not running") can't be mistaken for a down/broken session.
+        "neutral": [
+            r"RSVP Process:\s*not running",
+            r"LSP Tunnels Process:\s*not running[^\n]*",
+            r"not registered with RSVP",
+            r"Forwarding:\s*disabled",
         ],
     },
     "lsp_transport": {
@@ -53,7 +64,7 @@ _STAGE_PATTERNS = {
             r"LSP.*up",
         ],
         "negative": [
-            r"Down",
+            r"\bDown\b",
             r"Failed",
             r"No path",
             r"not active",
@@ -71,7 +82,7 @@ _STAGE_PATTERNS = {
         "negative": [
             r"Idle",
             r"Connect",
-            r"Down",
+            r"\bDown\b",
             r"not established",
             r"peer.*down",
         ],
@@ -100,6 +111,18 @@ def parse_stage_output(stage: str, raw_output: str) -> dict[str, Any]:
     stage_key = stage if stage in _STAGE_PATTERNS else "igp"
     patterns = _STAGE_PATTERNS[stage_key]
 
+    # Phrases that describe an optional sub-protocol being intentionally
+    # unused (e.g. RSVP-TE in an LDP-only deployment) are informational, not
+    # failures. Record them, then remove them from the text negative-keyword
+    # matching runs against, so their wording can never flip the stage to
+    # "failed" for a condition that isn't actually a problem.
+    neutral_hits = []
+    negative_scan_text = raw_output
+    for pattern in patterns.get("neutral", []):
+        if re.search(pattern, raw_output, flags=re.IGNORECASE | re.MULTILINE):
+            neutral_hits.append(pattern)
+        negative_scan_text = re.sub(pattern, "", negative_scan_text, flags=re.IGNORECASE | re.MULTILINE)
+
     positive_hits = []
     negative_hits = []
 
@@ -108,7 +131,7 @@ def parse_stage_output(stage: str, raw_output: str) -> dict[str, Any]:
             positive_hits.append(pattern)
 
     for pattern in patterns["negative"]:
-        if re.search(pattern, raw_output, flags=re.IGNORECASE | re.MULTILINE):
+        if re.search(pattern, negative_scan_text, flags=re.IGNORECASE | re.MULTILINE):
             negative_hits.append(pattern)
 
     status = "passed" if positive_hits and not negative_hits else "failed" if negative_hits else "unknown"
@@ -116,6 +139,11 @@ def parse_stage_output(stage: str, raw_output: str) -> dict[str, Any]:
     evidence: list[str] = []
     if positive_hits:
         evidence.append(f"Positive indicators found: {', '.join(positive_hits[:3])}")
+    if neutral_hits:
+        evidence.append(
+            "Optional sub-protocol not in use on this path (e.g. RSVP-TE in an "
+            "LDP-only deployment) - not treated as a failure."
+        )
     if negative_hits:
         evidence.append(f"Failure indicators found: {', '.join(negative_hits[:3])}")
     if not evidence:
@@ -126,5 +154,6 @@ def parse_stage_output(stage: str, raw_output: str) -> dict[str, Any]:
         "status": status,
         "positive_hits": positive_hits,
         "negative_hits": negative_hits,
+        "neutral_hits": neutral_hits,
         "evidence": evidence,
     }
