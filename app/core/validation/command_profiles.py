@@ -25,12 +25,18 @@ DEFAULT_COMMAND_PROFILES: list[CommandProfile] = [
         stage="igp",
         command_list=[
             "show ospf neighbor",
-            "show isis adjacency",
+            "show isis neighbors",
             "show ip route 10.0.0.2",
         ],
         success_indicators=["FULL", "Up", "Established", "Route present"],
         parse_rules=["neighbor_state", "route_presence"],
-        notes="Cisco core verification profile for IGP readiness.",
+        notes=(
+            "Cisco core verification profile for IGP readiness. Uses "
+            "'show isis neighbors', not 'show isis adjacency' - the latter "
+            "is '% Incomplete command' on IOS-XE (confirmed against live "
+            "lab routers); 'neighbors' is supported across classic IOS, "
+            "IOS-XE, and IOS-XR."
+        ),
     ),
     CommandProfile(
         vendor="Cisco",

@@ -116,7 +116,7 @@ def test_validation_engine_runs_stage_profiles_for_devices(monkeypatch):
     assert result.stage_results[0].stage == "igp"
     assert result.stage_results[0].status == "passed"
     assert captured[0][0] == "core-rtr-01"
-    assert captured[0][1] == ["show ospf neighbor", "show isis adjacency", "show ip route 10.0.0.2"]
+    assert captured[0][1] == ["show ospf neighbor", "show isis neighbors", "show ip route 10.0.0.2"]
     assert captured[-1][1] == ["show bgp vpnv4 unicast summary", "show route table vpnv4", "show vrf"]
 
 
