@@ -207,9 +207,9 @@ The parsed file preserves command-delimited structured output, for example:
 
 The raw file preserves the original router text. The combined report provides a human-readable operational summary.
 
-### 8. Automation server and bastion support
+### 8. JumpServer and bastion support
 
-Many ISP environments restrict direct access to network devices. The application can route device sessions through an SSH automation server or bastion host.
+Many ISP environments restrict direct access to network devices. The application can route device sessions through an SSH jump server or bastion host.
 
 The jump-server workflow supports:
 

@@ -39,10 +39,10 @@ Before starting, confirm:
 - You have an authorized local application account.
 - MFA is available if enabled.
 - You have approved device credentials.
-- You know whether direct access or the Automation Server is required.
+- You know whether direct access or the JumpServer is required.
 - The workstation has network, VPN, or management-network access.
 - The target router SSH port is reachable.
-- Router and Automation Server host keys are trusted.
+- Router and JumpServer host keys are trusted.
 - You have the relevant ticket or maintenance reference.
 
 ## 4. First-Time Setup
@@ -67,7 +67,7 @@ The application trust file is:
 %APPDATA%\ISPNetOpsTool\known_hosts
 ```
 
-For an Automation Server, obtain the server host key from the server or an approved management workstation. For legacy Cisco devices, use the approved legacy SSH method on the Automation Server if modern `ssh-keyscan` cannot negotiate with the router.
+For a JumpServer, obtain the server host key from the server or an approved management workstation. For legacy Cisco devices, use the approved legacy SSH method on the JumpServer if modern `ssh-keyscan` cannot negotiate with the router.
 
 A valid entry must contain the target address, key type, and public key, for example:
 
@@ -83,22 +83,22 @@ Do not copy SSH banners such as:
 
 After adding keys, verify the trust file parses and contains the expected target entries. If a known key changes unexpectedly, stop and escalate to the network/security owner.
 
-### 4.3 Configure the Automation Server
+### 4.3 Configure the JumpServer
 
 Open:
 
-**Automation Server -> Configure Automation Server...**
+**JumpServer -> Configure JumpServer...**
 
 Enter:
 
 - Host/IP address
 - SSH port, normally `22`
-- Automation Server username
-- Automation Server password
+- JumpServer username
+- JumpServer password
 
 Select the routing option and click **Test Connection**. Do not proceed if the test fails.
 
-The Automation Server provides network reachability. Each router still uses its own device credentials.
+The JumpServer provides network reachability. Each router still uses its own device credentials.
 
 ## 5. Add or Import Devices
 
@@ -259,7 +259,7 @@ Store exports in an approved location. Do not email reports containing sensitive
 - Confirm VPN or management-network access.
 - Confirm the device address and port.
 - Check firewall and routing policy.
-- Test reachability from the Automation Server if routing through it.
+- Test reachability from the JumpServer if routing through it.
 - Escalate to the network-access owner if the path is unavailable.
 
 ### SSH host-key or protocol error
@@ -286,7 +286,7 @@ Store exports in an approved location. Do not email reports containing sensitive
 ### Device result is FAILED
 
 - Read the specific error in the results table and Output pane.
-- Separate device-specific failures from Automation Server failures.
+- Separate device-specific failures from JumpServer failures.
 - Retry only after correcting or understanding the cause.
 - Record failed devices in the ticket.
 
@@ -318,7 +318,7 @@ Tool: ISP NetOps Tool
 Operator: <operator>
 Ticket/change: <reference>
 Run time UTC: <timestamp>
-Automation Server: <host or N/A>
+JumpServer: <host or N/A>
 Device scope: <device names or group>
 Commands: <command list>
 Successful devices: <count>
@@ -334,7 +334,7 @@ Attach the combined report and raw output only when permitted by the ticket’s 
 Escalate to the appropriate owner when:
 
 - A router host key changes unexpectedly.
-- Multiple devices fail through the same Automation Server.
+- Multiple devices fail through the same JumpServer.
 - Authentication failures affect multiple accounts or sites.
 - Output suggests a service-impacting condition.
 - The tool produces inconsistent results across repeated runs.

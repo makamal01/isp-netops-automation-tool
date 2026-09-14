@@ -9,7 +9,7 @@
 
 This document explains how the application works, how to install and operate it in a development environment, how to troubleshoot common failures, and how a developer should extend or remove features without breaking security or operational behavior.
 
-The application is a Windows-oriented PySide6 desktop tool for controlled, read-only command collection from Cisco, Huawei, and Nokia network devices. It stores local inventory and account data, connects through Netmiko and Paramiko, supports an optional SSH Automation Server, parses output with TextFSM where templates exist, and exports parsed, raw, and summary artifacts.
+The application is a Windows-oriented PySide6 desktop tool for controlled, read-only command collection from Cisco, Huawei, and Nokia network devices. It stores local inventory and account data, connects through Netmiko and Paramiko, supports an optional SSH JumpServer, parses output with TextFSM where templates exist, and exports parsed, raw, and summary artifacts.
 
 This guide describes the current implementation. It does not claim that the project is a complete centralized ISP management platform.
 
@@ -18,10 +18,10 @@ This guide describes the current implementation. It does not claim that the proj
 ### Current responsibilities
 
 - Local operator authentication and optional TOTP MFA
-- Local encrypted device and Automation Server credential storage
+- Local encrypted device and JumpServer credential storage
 - Device inventory management and CSV onboarding
 - Multi-vendor SSH command execution
-- Optional Automation Server proxy routing
+- Optional JumpServer proxy routing
 - Safe-mode filtering for obvious disruptive commands
 - Parsed and raw output preservation
 - Operational reports and exports
@@ -52,14 +52,14 @@ app/
     command_runner.py             Netmiko execution, Paramiko proxying, results
     command_safety.py             Safe-mode command filtering
     device_manager.py             Device model, encrypted inventory, CSV import
-    jump_server.py                Automation Server configuration and persistence
+    jump_server.py                JumpServer configuration and persistence
     report.py                     Parsed/raw report formatting and summary reports
     vendors.py                    User vendor names to Netmiko device types
   gui/
     login_window.py               Login, first-run account setup, MFA flow
     main_window.py                Device list, run controls, result display/export
     device_dialog.py              Add/edit device form and validation
-    jump_server_dialog.py         Automation Server configuration and test action
+    jump_server_dialog.py         JumpServer configuration and test action
     mfa_window.py                 MFA enrollment and verification dialogs
   utils/
     crypto.py                     Fernet encryption/decryption
@@ -95,7 +95,7 @@ flowchart TD
     E --> H[BulkRunner in QThread]
     H --> I[run_bulk]
     I --> J[Netmiko device session]
-    I --> K[Paramiko Automation Server transport]
+    I --> K[Paramiko JumpServer transport]
     J --> L[raw CLI response]
     L --> M[TextFSM parse]
     L --> N[DeviceResult raw_output]
@@ -133,7 +133,7 @@ Files include:
 ```text
 users.json       Local users, bcrypt hashes, MFA metadata, lockout state
 devices.yaml     Device inventory with encrypted password/secret fields
-jumpserver.yaml  Automation Server configuration with encrypted password
+jumpserver.yaml  JumpServer configuration with encrypted password
 secret.key       Fernet key used by the current local installation
 known_hosts      Verified SSH host keys used by strict connections
 reports/         Automatically saved run reports
@@ -154,11 +154,11 @@ Never commit any of these files. The `.gitignore` excludes local inventories, re
 - Raise `StorageError` for recoverable local-store failures and show a user-facing startup message.
 - Preserve backward compatibility when adding fields by providing dataclass defaults or a migration.
 
-## 6. SSH and Automation Server Security
+## 6. SSH and JumpServer Security
 
 ### Host-key verification
 
-Direct device connections use Netmiko strict host-key options and the application `known_hosts` file. Automation Server connections use Paramiko with system host keys plus the application host-key file and reject unknown keys.
+Direct device connections use Netmiko strict host-key options and the application `known_hosts` file. JumpServer connections use Paramiko with system host keys plus the application host-key file and reject unknown keys.
 
 This intentionally prevents silent trust of a new host. A first-run enrollment workflow is still a product opportunity: it should display the fingerprint, require an operator confirmation, and record the enrollment event.
 
@@ -169,7 +169,7 @@ Some older Cisco devices expose `ssh-rsa` host keys and SHA-1 Diffie-Hellman KEX
 ### Connection debugging order
 
 1. Confirm DNS/IP and TCP/22 reachability from the relevant network location.
-2. If using the Automation Server, test reachability from that server, not only Windows.
+2. If using the JumpServer, test reachability from that server, not only Windows.
 3. Confirm the target host key is present for the exact address used by the app.
 4. Confirm vendor mapping and SSH port.
 5. Confirm credentials and privilege/enable requirements.
@@ -181,7 +181,7 @@ Some older Cisco devices expose `ssh-rsa` host keys and SHA-1 Diffie-Hellman KEX
 
 - Windows workstation for the supported desktop workflow
 - Python 3.11+ recommended
-- Access to the network management path or Automation Server
+- Access to the network management path or JumpServer
 - A supported SSH-capable device for live testing
 - Git and GitHub CLI only if contributing or publishing
 
@@ -298,7 +298,7 @@ Mock `ConnectHandler` and Paramiko boundaries. Test:
 - Authentication failure
 - Timeout
 - Missing host key
-- Automation Server tunnel failure
+- JumpServer tunnel failure
 - Cancellation before connect
 - Cancellation between commands
 - Retry selection behavior
@@ -347,7 +347,7 @@ The device is reachable but its host key is not trusted. Obtain and verify the k
 
 ### `No route to host` or TCP timeout
 
-Check the network path from the correct location. For a proxied device, Windows only needs to reach the Automation Server; the Automation Server must reach the router.
+Check the network path from the correct location. For a proxied device, Windows only needs to reach the JumpServer; the JumpServer must reach the router.
 
 ### `Authentication failed`
 
@@ -440,7 +440,7 @@ A new developer should be able to:
 - Run the complete test suite.
 - Explain the QThread to worker-to-signal result flow.
 - Add a device without exposing credentials.
-- Configure an Automation Server and known-host trust.
+- Configure a JumpServer and known-host trust.
 - Trace a device result from Netmiko through `DeviceResult` to the Output pane and export.
 - Add a vendor or parser fixture safely.
 - Diagnose a missing host key, timeout, authentication failure, parser fallback, and corrupt local store.

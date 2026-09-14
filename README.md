@@ -100,21 +100,21 @@ device names before storing credentials encrypted in the local inventory.
 Treat the completed CSV as sensitive because it contains passwords, and delete
 or secure it after import according to your ISP's data-handling policy.
 
-## Automation Server / bastion support
+## JumpServer / bastion support
 
 Many NOC environments only allow direct SSH to a jump server, which in
-turn reaches the routers. Configure this under **Automation Server > Configure
-Automation Server...**:
+turn reaches the routers. Configure this under **JumpServer > Configure
+JumpServer...**:
 
-- **Route device connections through automation server** — toggle on/off.
-- **Host/Port/Username/Password** — credentials for the automation server.
-- **Test Connection** — verifies login to the automation server without running
+- **Route device connections through jump server** — toggle on/off.
+- **Host/Port/Username/Password** — credentials for the jump server.
+- **Test Connection** — verifies login to the jump server without running
   any device commands.
 
 When enabled, the app logs into the jump host **once per run** and opens
 one proxied SSH channel per device through it (standard SSH bastion/proxy
 pattern) — each router still authenticates with its own credentials from
-the device inventory. The automation server's credentials/config are encrypted at
+the device inventory. The jump server's credentials/config are encrypted at
 rest the same way device passwords are.
 
 ## Results and reporting

@@ -1,4 +1,4 @@
-"""Automation server configuration dialog."""
+"""JumpServer configuration dialog."""
 from PySide6.QtWidgets import (
     QDialog, QFormLayout, QLineEdit, QSpinBox, QCheckBox, QPushButton,
     QVBoxLayout, QMessageBox, QLabel
@@ -15,17 +15,17 @@ class JumpServerDialog(QDialog):
         self.manager = jump_server_manager
         config = jump_server_manager.get_config()
 
-        self.setWindowTitle("Automation Server Settings")
+        self.setWindowTitle("JumpServer Settings")
         self.setMinimumWidth(360)
 
         info = QLabel(
             "When enabled, all device connections are routed through this "
-            "automation server instead of connecting to routers directly. "
+            "jump server instead of connecting to routers directly. "
             "Each router still uses its own stored credentials."
         )
         info.setWordWrap(True)
 
-        self.enabled_checkbox = QCheckBox("Route device connections through automation server")
+        self.enabled_checkbox = QCheckBox("Route device connections through jump server")
         self.enabled_checkbox.setChecked(config.enabled)
 
         self.host_edit = QLineEdit(config.host)
@@ -75,13 +75,13 @@ class JumpServerDialog(QDialog):
         except JumpServerError as exc:
             QMessageBox.critical(self, "Connection failed", str(exc))
             return
-        QMessageBox.information(self, "Success", "Connected to automation server successfully.")
+        QMessageBox.information(self, "Success", "Connected to jump server successfully.")
 
     def _on_save(self):
         host = self.host_edit.text().strip()
         username = self.username_edit.text().strip()
         if self.enabled_checkbox.isChecked() and not (host and username):
-            QMessageBox.warning(self, "Missing info", "Host and username are required to enable the automation server.")
+            QMessageBox.warning(self, "Missing info", "Host and username are required to enable the jump server.")
             return
         self.manager.save(
             enabled=self.enabled_checkbox.isChecked(),

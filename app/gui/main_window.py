@@ -18,6 +18,7 @@ from app.core.report import build_text_report, format_device_output
 from app.core.jump_server import JumpServerManager
 from app.gui.device_dialog import DeviceDialog
 from app.gui.jump_server_dialog import JumpServerDialog
+from app.gui.validation_dialog import ValidationDialog
 from app.auth.auth_manager import AuthManager
 from app.auth import mfa_manager
 from app.gui.mfa_window import MfaEnrollDialog
@@ -90,8 +91,11 @@ class MainWindow(QMainWindow):
         device_menu.addAction("Import Devices from CSV...").triggered.connect(self._import_devices_csv)
         device_menu.addAction("Export device CSV template...").triggered.connect(self._export_device_template)
 
-        jump_menu = menu.addMenu("Automation Server")
-        jump_menu.addAction("Configure Automation Server...").triggered.connect(self._configure_jump_server)
+        jump_menu = menu.addMenu("JumpServer")
+        jump_menu.addAction("Configure JumpServer...").triggered.connect(self._configure_jump_server)
+
+        validation_menu = menu.addMenu("Validation")
+        validation_menu.addAction("MPLS Path Validation...").triggered.connect(self._open_validation_dialog)
 
         account_menu = menu.addMenu("Account")
         account_menu.addAction("Change Password").triggered.connect(self._change_password)
@@ -251,6 +255,10 @@ class MainWindow(QMainWindow):
                 detail=f"enabled={self.jump_server_manager.get_config().enabled}",
             )
 
+    def _open_validation_dialog(self):
+        dialog = ValidationDialog(self)
+        dialog.exec()
+
     def _selected_device_index(self):
         row = self.device_list.currentRow()
         return row if row >= 0 else None
@@ -405,12 +413,12 @@ class MainWindow(QMainWindow):
         self._auto_save_report()
 
     def _on_run_error(self, message: str):
-        """Handle a worker-level Automation Server failure separately from device results."""
+        """Handle a worker-level JumpServer failure separately from device results."""
         self.run_btn.setEnabled(True)
         self.cancel_btn.setEnabled(False)
         self.status_label.setText("Run failed.")
         audit_log.log_event("bulk_run_failed", username=self.username, detail=message)
-        QMessageBox.critical(self, "Automation server error", message)
+        QMessageBox.critical(self, "JumpServer error", message)
 
     def _auto_save_report(self):
         """Persist every run's readable text report to the app's reports

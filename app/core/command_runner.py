@@ -21,7 +21,7 @@ from app.config import DEFAULT_SSH_TIMEOUT, DEFAULT_MAX_WORKERS, KNOWN_HOSTS_FIL
 
 
 class JumpServerError(Exception):
-    """Raised when the automation server itself cannot be reached."""
+    """Raised when the jump server itself cannot be reached."""
 
 
 @dataclass
@@ -58,7 +58,7 @@ def _run_single_command(conn, cmd: str, timeout: int) -> tuple[str, str]:
 
 
 def open_jump_transport(jump_config: JumpServerConfig, timeout: int = DEFAULT_SSH_TIMEOUT) -> paramiko.SSHClient:
-    """Open and authenticate a single SSH session to the automation server.
+    """Open and authenticate a single SSH session to the jump server.
     The returned client's transport is reused to open one proxied channel
     per device, so we only log into the jump host once per bulk run."""
     client = paramiko.SSHClient()
@@ -77,7 +77,7 @@ def open_jump_transport(jump_config: JumpServerConfig, timeout: int = DEFAULT_SS
             allow_agent=False,
         )
     except Exception as exc:
-        raise JumpServerError(f"Could not connect to automation server {jump_config.host}: {exc}") from exc
+        raise JumpServerError(f"Could not connect to jump server {jump_config.host}: {exc}") from exc
     return client
 
 
@@ -119,7 +119,7 @@ def run_commands_on_device(
             )
         except Exception as exc:
             duration = time.monotonic() - start
-            return DeviceResult(device.name, device.host, False, "", duration, f"Automation server tunnel failed: {exc}")
+            return DeviceResult(device.name, device.host, False, "", duration, f"JumpServer tunnel failed: {exc}")
         connection_params["sock"] = channel
 
     output_chunks = []
