@@ -222,6 +222,69 @@ def test_failed_device_execution_preserves_failure_status(monkeypatch):
     assert "Authentication failed" in result.stage_results[0].evidence[0]
 
 
+def test_per_device_breakdown_identifies_which_side_failed(monkeypatch):
+    """One device up, one device down: the stage must fail overall, but the
+    per-device breakdown must show exactly which side is the problem -
+    not just a merged pass/fail for the whole stage."""
+    device_a = Device(
+        name="side-a",
+        host="10.0.0.1",
+        vendor="Cisco IOS",
+        username="admin",
+        password_encrypted=crypto.encrypt("secret"),
+    )
+    device_b = Device(
+        name="side-b",
+        host="10.0.0.2",
+        vendor="Cisco IOS",
+        username="admin",
+        password_encrypted=crypto.encrypt("secret"),
+    )
+
+    def fake_run_commands_on_device(dev, commands, **kwargs):
+        if dev.name == "side-a":
+            output = "Neighbor is up\nAdjacency is full"
+        else:
+            output = "Neighbor is down\nAdjacency Idle"
+        return type(
+            "Result",
+            (),
+            {
+                "device_name": dev.name,
+                "host": dev.host,
+                "success": True,
+                "output": output,
+                "duration_seconds": 1.0,
+                "error": "",
+                "raw_output": output,
+            },
+        )()
+
+    monkeypatch.setattr("app.core.validation.engine.run_commands_on_device", fake_run_commands_on_device)
+
+    engine = ValidationEngine()
+    request = ValidationRequest(
+        side_a="10.0.0.1",
+        side_b="10.0.0.2",
+        vendor="Cisco",
+        platform="IOS-XR",
+        service_type="L3VPN",
+        mode="single_stage",
+        protocol_focus="IGP",
+    )
+
+    result = engine.validate(request, devices=[device_a, device_b])
+
+    igp_stage = result.stage_results[0]
+    assert igp_stage.status == "failed"
+    assert len(igp_stage.device_results) == 2
+
+    by_name = {dr.device_name: dr for dr in igp_stage.device_results}
+    assert by_name["side-a"].status == "passed"
+    assert by_name["side-b"].status == "failed"
+    assert any("[side-b]" in item for item in igp_stage.evidence)
+
+
 def test_cisco_iosxe_alias_uses_cisco_profiles():
     from app.core.validation.command_profiles import get_profiles_for
 

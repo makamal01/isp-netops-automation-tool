@@ -20,6 +20,17 @@ class ValidationRequest:
 
 
 @dataclass
+class DeviceStageEvidence:
+    """Per-device outcome for a single validation stage, so the operator can
+    see which side of a path failed instead of only a merged stage verdict."""
+    device_name: str
+    host: str
+    status: str  # passed, failed, unknown, connection_failed
+    raw_output: str
+    evidence: list[str] = field(default_factory=list)
+
+
+@dataclass
 class StageResult:
     stage: str
     status: str
@@ -31,6 +42,7 @@ class StageResult:
     evidence: list[str] = field(default_factory=list)
     next_step: str = ""
     confidence: str = "medium"
+    device_results: list[DeviceStageEvidence] = field(default_factory=list)
 
 
 @dataclass

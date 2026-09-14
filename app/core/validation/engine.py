@@ -5,7 +5,7 @@ from typing import List, Optional
 from app.core.command_runner import open_jump_transport, run_commands_on_device
 from app.core.jump_server import JumpServerConfig
 from app.core.validation.command_profiles import get_profiles_for
-from app.core.validation.models import StageResult, ValidationRequest, ValidationResult
+from app.core.validation.models import DeviceStageEvidence, StageResult, ValidationRequest, ValidationResult
 from app.core.validation.parsers import parse_stage_output
 
 
@@ -141,44 +141,76 @@ class ValidationEngine:
                     continue
 
                 profile = profiles[0]
-                collected_outputs = []
-                success_for_all = True
-                failure_messages = []
+                device_results: list[DeviceStageEvidence] = []
                 for device in devices:
                     try:
                         result = run_commands_on_device(device, profile.command_list, jump_transport=jump_transport)
                     except Exception as exc:  # pragma: no cover - surfaced to the validation UI
-                        result = None
-                        failure_messages.append(f"{device.name}@{device.host}: SSH connection failed: {exc}")
-                        success_for_all = False
+                        device_results.append(
+                            DeviceStageEvidence(
+                                device_name=device.name,
+                                host=device.host,
+                                status="connection_failed",
+                                raw_output="",
+                                evidence=[f"SSH connection failed: {exc}"],
+                            )
+                        )
                         continue
 
-                    if result is not None:
-                        collected_outputs.append(f"{device.name}: {result.output}")
-                        if not result.success:
-                            success_for_all = False
-                            failure_messages.append(f"{device.name}@{device.host}: {result.error or 'device command execution failed'}")
+                    if not result.success:
+                        device_results.append(
+                            DeviceStageEvidence(
+                                device_name=device.name,
+                                host=device.host,
+                                status="connection_failed",
+                                raw_output=result.output,
+                                evidence=[result.error or "Device command execution failed."],
+                            )
+                        )
+                        continue
 
-                raw_output = "\n".join(collected_outputs)
-                if not success_for_all:
-                    evidence = []
-                    if failure_messages:
-                        evidence.extend(failure_messages)
-                    evidence.append("Device execution failed or returned an unsuccessful result.")
-                    parsed = {"status": "failed", "evidence": evidence}
+                    parsed = parse_stage_output(stage, result.output)
+                    if parsed["status"] == "unknown":
+                        device_results.append(
+                            DeviceStageEvidence(
+                                device_name=device.name,
+                                host=device.host,
+                                status="failed",
+                                raw_output=result.output,
+                                evidence=[
+                                    f"No valid {stage} state was detected on {device.name}. "
+                                    "The network may be incomplete or the relevant protocol is not present."
+                                ],
+                            )
+                        )
+                        continue
+
+                    device_results.append(
+                        DeviceStageEvidence(
+                            device_name=device.name,
+                            host=device.host,
+                            status=parsed["status"],
+                            raw_output=result.output,
+                            evidence=parsed["evidence"],
+                        )
+                    )
+
+                # Aggregate: a stage only passes when every device passes -
+                # this is what lets the operator see which side is the
+                # actual problem, via device_results, instead of only a
+                # single merged verdict for the stage.
+                statuses = {dr.status for dr in device_results}
+                if "failed" in statuses or "connection_failed" in statuses:
                     stage_status = "failed"
+                elif statuses == {"passed"}:
+                    stage_status = "passed"
                 else:
-                    parsed = parse_stage_output(stage, raw_output)
-                    stage_status = parsed["status"]
-                    if stage_status == "unknown":
-                        parsed = {
-                            "status": "failed",
-                            "evidence": [
-                                f"No valid {stage} state was detected from the configured devices. "
-                                "The network may be incomplete or the relevant protocol is not present."
-                            ],
-                        }
-                        stage_status = "failed"
+                    stage_status = "unknown"
+
+                raw_output = "\n\n".join(f"{dr.device_name}:\n{dr.raw_output}" for dr in device_results)
+                combined_evidence = [
+                    f"[{dr.device_name}] {item}" for dr in device_results for item in dr.evidence
+                ]
 
                 stage_result = StageResult(
                     stage=stage,
@@ -191,11 +223,11 @@ class ValidationEngine:
                         "protocol": profile.protocol,
                         "status": stage_status,
                         "devices_checked": len(devices),
-                        **parsed,
                     },
-                    evidence=parsed["evidence"],
+                    evidence=combined_evidence,
                     next_step="Proceed to the next validation stage." if stage_status == "passed" else "Fix the failing lower-layer prerequisite before proceeding.",
                     confidence="high" if stage_status == "passed" else "medium",
+                    device_results=device_results,
                 )
                 stage_results.append(stage_result)
         finally:

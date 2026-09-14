@@ -123,29 +123,41 @@ def parse_stage_output(stage: str, raw_output: str) -> dict[str, Any]:
             neutral_hits.append(pattern)
         negative_scan_text = re.sub(pattern, "", negative_scan_text, flags=re.IGNORECASE | re.MULTILINE)
 
+    # positive_hits/negative_hits track which *patterns* fired (used for the
+    # pass/fail decision below); the human-facing evidence text is built from
+    # the actual matched substrings instead, so an operator sees real device
+    # output (e.g. "State: Oper") rather than a raw regex like "\bOper\b".
     positive_hits = []
+    positive_matches = []
     negative_hits = []
+    negative_matches = []
 
     for pattern in patterns["positive"]:
-        if re.search(pattern, raw_output, flags=re.IGNORECASE | re.MULTILINE):
+        match = re.search(pattern, raw_output, flags=re.IGNORECASE | re.MULTILINE)
+        if match:
             positive_hits.append(pattern)
+            positive_matches.append(match.group(0).strip())
 
     for pattern in patterns["negative"]:
-        if re.search(pattern, negative_scan_text, flags=re.IGNORECASE | re.MULTILINE):
+        match = re.search(pattern, negative_scan_text, flags=re.IGNORECASE | re.MULTILINE)
+        if match:
             negative_hits.append(pattern)
+            negative_matches.append(match.group(0).strip())
 
     status = "passed" if positive_hits and not negative_hits else "failed" if negative_hits else "unknown"
 
     evidence: list[str] = []
-    if positive_hits:
-        evidence.append(f"Positive indicators found: {', '.join(positive_hits[:3])}")
+    if positive_matches:
+        shown = list(dict.fromkeys(positive_matches))[:3]
+        evidence.append(f"Positive indicators found: {', '.join(shown)}")
     if neutral_hits:
         evidence.append(
             "Optional sub-protocol not in use on this path (e.g. RSVP-TE in an "
             "LDP-only deployment) - not treated as a failure."
         )
-    if negative_hits:
-        evidence.append(f"Failure indicators found: {', '.join(negative_hits[:3])}")
+    if negative_matches:
+        shown = list(dict.fromkeys(negative_matches))[:3]
+        evidence.append(f"Failure indicators found: {', '.join(shown)}")
     if not evidence:
         evidence.append("No clear state indicators found in the command output.")
 

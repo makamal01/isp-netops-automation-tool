@@ -105,12 +105,35 @@ class ValidationDialog(QDialog):
         }
         return colors.get(status_key, "#4b5563")
 
+    def _build_device_blocks(self, stage) -> str:
+        """Per-device breakdown so the operator can see which side of the
+        path failed, instead of only a merged stage-level verdict."""
+        if not stage.device_results:
+            return ""
+
+        rows = []
+        for device_result in stage.device_results:
+            evidence = (
+                "<br/>".join(f"&nbsp;&nbsp;• {item}" for item in device_result.evidence)
+                if device_result.evidence else "&nbsp;&nbsp;• No evidence captured."
+            )
+            rows.append(
+                "<div style='margin-top: 6px; padding: 6px 10px; border-left: 3px solid "
+                f"{self._stage_color(device_result.status)}; background: #ffffff;'>"
+                f"<b>{device_result.device_name}</b> ({device_result.host}) - "
+                f"<span style='color: {self._stage_color(device_result.status)}; font-weight: bold;'>"
+                f"{device_result.status.upper()}</span><br/>{evidence}"
+                "</div>"
+            )
+        return "<div style='margin-top: 8px;'><b>Per-device results:</b>" + "".join(rows) + "</div>"
+
     def _build_result_html(self, result) -> str:
         status_color = self._stage_color(result.overall_status)
         stage_blocks = []
         for stage in result.stage_results:
             evidence = "<br/>".join(f"• {item}" for item in stage.evidence) if stage.evidence else "• No evidence captured."
             commands = ", ".join(stage.commands) if stage.commands else "None"
+            device_blocks = self._build_device_blocks(stage)
             stage_blocks.append(
                 "<div style='margin-top: 12px; padding: 10px 12px; border: 1px solid #dfe7f2; border-radius: 6px; background: #fafcff;'>"
                 f"<b>{stage.stage}</b> - <span style='color: {self._stage_color(stage.status)}; font-weight: bold;'>{stage.status.upper()}</span> "
@@ -118,6 +141,7 @@ class ValidationDialog(QDialog):
                 f"<b>Evidence:</b><br/>{evidence}<br/>"
                 f"<b>Commands:</b> {commands}<br/>"
                 f"<b>Next step:</b> {stage.next_step or 'No specific step required.'}"
+                f"{device_blocks}"
                 "</div>"
             )
 
