@@ -15,9 +15,12 @@ import hashlib
 from dataclasses import dataclass
 from typing import Optional
 
+import paramiko
 from paramiko import Transport
 
 from app.config import KNOWN_HOSTS_FILE, DEFAULT_SSH_TIMEOUT, atomic_write_text
+
+_HOST_KEY_ERROR_PREFIXES = ("SSH host-key error:", "SSH host-key or protocol error:")
 
 
 @dataclass
@@ -55,6 +58,25 @@ def fetch_host_key(
 
     fingerprint = "SHA256:" + base64.b64encode(hashlib.sha256(key.asbytes()).digest()).decode().rstrip("=")
     return HostKeyInfo(host=host, key_type=key.get_name(), key_base64=key.get_base64(), fingerprint=fingerprint)
+
+
+def is_host_key_failure(error) -> bool:
+    """True if `error` indicates an untrusted/changed SSH host key, as
+    opposed to an auth/timeout/other connection failure.
+
+    Accepts either a DeviceResult.error string (matched against
+    command_runner.py's own error-taxonomy prefixes) or an exception from
+    the JumpServer connect path (matched via its __cause__, preserved by
+    `raise JumpServerError(...) from exc`, against paramiko's own
+    host-key exception types/wording).
+    """
+    if isinstance(error, str):
+        return error.startswith(_HOST_KEY_ERROR_PREFIXES)
+
+    cause = getattr(error, "__cause__", None) or error
+    if isinstance(cause, paramiko.BadHostKeyException):
+        return True
+    return "not found in known_hosts" in str(cause)
 
 
 def trust_host_key(info: HostKeyInfo) -> None:

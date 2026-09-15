@@ -59,7 +59,7 @@ app/
     deployment_policy.py          Managed-laptop/jumpserver-only org safety defaults
     device_manager.py             Device model, encrypted inventory, CSV import
     jump_server.py                JumpServer configuration and persistence
-    host_key_manager.py           Fetch/trust SSH host keys without authenticating
+    host_key_manager.py           Fetch/trust SSH host keys without authenticating; is_host_key_failure() classifies connect failures
     report.py                     Parsed/raw report formatting and summary reports
     vendors.py                    User vendor names to Netmiko device types
     validation/
@@ -72,7 +72,9 @@ app/
     main_window.py                Device list, run controls, result display/export
     device_dialog.py              Add/edit device form and validation
     jump_server_dialog.py         JumpServer configuration and test action
-    host_key_dialog.py            In-app SSH host-key fetch/trust flow
+    host_key_dialog.py            Standalone "enroll ahead of time" host-key fetch/trust flow
+    host_key_prompt.py            Shared PuTTY-style inline trust prompt (offer_host_key_trust),
+                                   used by JumpServer/Device Test Connection on a host-key failure
     validation_dialog.py          MPLS path validation dashboard
     mfa_window.py                 MFA enrollment and verification dialogs
   utils/
@@ -180,7 +182,9 @@ Never commit any of these files. The `.gitignore` excludes local inventories, re
 
 Direct device connections use Netmiko strict host-key options and the application `known_hosts` file. JumpServer connections use Paramiko with system host keys plus the application host-key file and reject unknown keys.
 
-This intentionally prevents silent trust of a new host. **Host Keys > Trust SSH Host Key...** in the main window provides this enrollment workflow: it negotiates the SSH transport handshake (via `host_key_manager.fetch_host_key`) without authenticating, displays the key type and SHA256 fingerprint, requires an explicit operator confirmation, writes the trusted entry to `known_hosts`, and records a `host_key_trusted` audit event. It supports fetching through the configured JumpServer as well as directly, mirroring the proxied-channel pattern `run_bulk()` uses.
+This intentionally prevents silent trust of a new host. Two GUI paths cover this enrollment, both built on `host_key_manager.fetch_host_key()`/`trust_host_key()`: **Host Keys > Trust SSH Host Key...** (enroll a host ahead of time), and `host_key_prompt.offer_host_key_trust()` (a PuTTY-style inline prompt wired into JumpServerDialog's and DeviceDialog's **Test Connection** buttons - `host_key_manager.is_host_key_failure()` classifies a connect failure as host-key-related, vs. auth/timeout/other, so only that specific case triggers the prompt-and-retry). Every path negotiates the SSH transport handshake without authenticating, displays the key type and SHA256 fingerprint, requires an explicit operator confirmation, writes the trusted entry to `known_hosts`, and records a `host_key_trusted` audit event. All support fetching through the configured JumpServer as well as directly, mirroring the proxied-channel pattern `run_bulk()` uses.
+
+Note that JumpServer routing does not make device-side host-key trust optional: the app tunnels a raw TCP connection through the jump server and then negotiates a full, separate SSH session with the device itself from this app - it does not shell out `ssh <device>` on the jump server the way a human operator might do manually. So a device's key must be trusted in this app's own `known_hosts` even when every connection to it goes through the jump server.
 
 ### Legacy device algorithms
 

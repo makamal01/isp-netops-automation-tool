@@ -236,7 +236,7 @@ class MainWindow(QMainWindow):
             self.device_list.item(i).setCheckState(state)
 
     def _add_device(self):
-        dialog = DeviceDialog()
+        dialog = DeviceDialog(jump_server_manager=self.jump_server_manager, username=self.username)
         if dialog.exec() == QDialog.Accepted and dialog.result_data:
             data = dialog.result_data
             try:
@@ -281,7 +281,7 @@ class MainWindow(QMainWindow):
         QMessageBox.information(self, "Template exported", f"Device template saved to:\n{path}")
 
     def _configure_jump_server(self):
-        dialog = JumpServerDialog(self.jump_server_manager)
+        dialog = JumpServerDialog(self.jump_server_manager, username=self.username)
         if dialog.exec() == QDialog.Accepted:
             audit_log.log_event(
                 "jump_server_configured", username=self.username,
@@ -306,7 +306,7 @@ class MainWindow(QMainWindow):
             QMessageBox.information(self, "No selection", "Select a device first.")
             return
         device = self.device_manager.list_devices()[idx]
-        dialog = DeviceDialog(device)
+        dialog = DeviceDialog(device, jump_server_manager=self.jump_server_manager, username=self.username)
         if dialog.exec() == QDialog.Accepted and dialog.result_data:
             data = dialog.result_data
             update_kwargs = {

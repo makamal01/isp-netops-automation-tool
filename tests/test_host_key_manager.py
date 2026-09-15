@@ -4,8 +4,10 @@ authenticating, and record an operator-confirmed key as trusted."""
 import base64
 import hashlib
 
+import paramiko
+
 from app.core import host_key_manager
-from app.core.host_key_manager import HostKeyInfo, fetch_host_key, trust_host_key
+from app.core.host_key_manager import HostKeyInfo, fetch_host_key, is_host_key_failure, trust_host_key
 
 
 class FakeKey:
@@ -105,3 +107,43 @@ def test_trust_host_key_replaces_stale_entry_for_same_host_only(tmp_path, monkey
     assert "10.0.0.2 ssh-rsa OTHERKEY" in lines
     assert not any(line.startswith("10.0.0.1 ssh-rsa OLDKEY") for line in lines)
     assert len(lines) == 2
+
+
+def test_is_host_key_failure_recognizes_device_result_error_prefixes():
+    """Matches the exact prefixes command_runner.py's error taxonomy uses
+    for host-key problems, so a device Test Connection can tell a host-key
+    failure apart from auth/timeout/unexpected failures."""
+    assert is_host_key_failure("SSH host-key error: Server '10.0.0.1' not found in known_hosts.") is True
+    assert is_host_key_failure("SSH host-key or protocol error: some detail") is True
+    assert is_host_key_failure("Authentication failed: bad password") is False
+    assert is_host_key_failure("Connection timed out: no route to host") is False
+    assert is_host_key_failure("Unexpected error: boom") is False
+
+
+def test_is_host_key_failure_recognizes_reject_policy_exception():
+    """Matches paramiko.RejectPolicy's own wording for an unrecognized
+    host, used by the JumpServer connection path."""
+    exc = paramiko.SSHException("Server '192.168.1.104' not found in known_hosts")
+    jump_error = Exception("Could not connect to jump server 192.168.1.104: " + str(exc))
+    jump_error.__cause__ = exc
+
+    assert is_host_key_failure(jump_error) is True
+
+
+def test_is_host_key_failure_recognizes_bad_host_key_exception():
+    class FakeKey:
+        def get_base64(self):
+            return "AAAAfakekey"
+
+    exc = paramiko.BadHostKeyException("192.168.1.104", FakeKey(), FakeKey())
+    jump_error = Exception("Could not connect to jump server 192.168.1.104: " + str(exc))
+    jump_error.__cause__ = exc
+
+    assert is_host_key_failure(jump_error) is True
+
+
+def test_is_host_key_failure_false_for_unrelated_exception():
+    auth_error = Exception("Could not connect to jump server 192.168.1.104: Authentication failed.")
+    auth_error.__cause__ = paramiko.AuthenticationException("Authentication failed.")
+
+    assert is_host_key_failure(auth_error) is False
