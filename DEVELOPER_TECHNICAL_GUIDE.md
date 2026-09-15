@@ -238,17 +238,28 @@ The current packaging direction is PyInstaller:
 
 ```powershell
 python -m pip install pyinstaller
-pyinstaller --noconfirm --windowed --onefile --name ISP-NetOps-Tool `
-  --icon app/assets/icon.ico --add-data "app/assets;app/assets" `
-  --collect-all netmiko --collect-all ntc_templates `
-  app/main.py
+pyinstaller --noconfirm ISP-NetOps-Tool.spec
 ```
 
-`--icon` sets the .exe file's own icon; `--add-data` bundles `app/assets/` into
-the packaged build so `app.config.ICON_FILE` (resolved via `sys._MEIPASS` when
-frozen) can still find it at runtime to set the window/taskbar icon. Both are
-required - omitting `--add-data` leaves the .exe's file icon correct but the
-running window with no icon.
+Build from the committed `ISP-NetOps-Tool.spec`, not a raw CLI invocation.
+It is equivalent to `--onefile --windowed --icon app/assets/icon.ico
+--add-data "app/assets;app/assets" --collect-all netmiko --collect-all
+ntc_templates`, plus one thing the CLI form cannot express: it strips Qt
+Quick/QML/PDF/VirtualKeyboard/3D/Svg/etc. from `Analysis.binaries` after
+analysis. Those modules are never imported by this app (confirmed via
+`grep -rhoE "from PySide6\.[A-Za-z]+" app/` - only QtCore/QtGui/QtWidgets
+are used), but PySide6's own PyInstaller hook bundles them unconditionally
+regardless of `--exclude-module` on the CLI; filtering `a.binaries` in a
+spec file is the only way to actually drop them. That trim brings the
+packaged exe from ~67MB down to ~59MB. `--icon` sets the .exe file's own
+icon; `--add-data` bundles `app/assets/` into the build so
+`app.config.ICON_FILE` (resolved via `sys._MEIPASS` when frozen) can find
+it at runtime to set the window/taskbar icon.
+
+If `ISP-NetOps-Tool.spec` needs to change (e.g. a new PySide6 submodule
+becomes genuinely used), regenerate a baseline with `pyi-makespec` and
+port the `collect_all()` calls, the `_UNUSED_QT_BINARIES` filter, and the
+icon/datas paths across - don't hand-edit blind.
 
 Validate the packaged executable on a clean test workstation. In particular, verify Qt plugins, Netmiko drivers, TextFSM templates, AppData creation, and host-key loading.
 

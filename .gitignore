@@ -4,7 +4,10 @@ __pycache__/
 *.pyc
 build/
 dist/
+dist_*/
+build_*/
 *.spec
+!ISP-NetOps-Tool.spec
 .isp_netops_tool_data/
 isp_netops_export_*/
 known_hosts

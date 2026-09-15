@@ -158,11 +158,18 @@ but that should come with its own review/approval workflow.
 
 ```powershell
 pip install pyinstaller
-pyinstaller --noconfirm --windowed --onefile --name ISP-NetOps-Tool ^
-  --icon app\assets\icon.ico --add-data "app\assets;app\assets" ^
-  --collect-all netmiko --collect-all ntc_templates ^
-  app/main.py
+pyinstaller --noconfirm ISP-NetOps-Tool.spec
 ```
+
+`ISP-NetOps-Tool.spec` (committed at the repo root) is the build config —
+use it instead of a plain `pyinstaller ... app/main.py` CLI invocation.
+Beyond the equivalent of `--onefile --windowed --icon --add-data
+--collect-all netmiko --collect-all ntc_templates`, it also strips Qt
+Quick/QML/PDF/VirtualKeyboard/3D/Svg from the build: this app only ever
+imports QtCore/QtGui/QtWidgets, but PySide6's own PyInstaller hook bundles
+those other modules unconditionally regardless of `--exclude-module` on
+the CLI, so removing them requires filtering `Analysis.binaries` in a
+spec file. That trim alone drops the packaged exe from ~67MB to ~59MB.
 
 The resulting `dist\ISP-NetOps-Tool.exe` can be copied to any Windows
 laptop — it doesn't need Python installed. App data (users/devices/keys)
