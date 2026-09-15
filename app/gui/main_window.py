@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QMainWindow, QWidget, QSplitter, QListWidget, QListWidgetItem, QPushButton,
     QVBoxLayout, QHBoxLayout, QPlainTextEdit, QTableWidget, QTableWidgetItem,
     QTextEdit, QLabel, QCheckBox, QFileDialog, QMessageBox, QInputDialog,
-    QLineEdit, QDialog
+    QLineEdit, QDialog, QProgressBar
 )
 from PySide6.QtCore import Qt, QThread, QObject, Signal
 
@@ -73,6 +73,9 @@ class MainWindow(QMainWindow):
         self.worker = None
         self.cancel_event = None
         self.last_run_devices = []
+        self.run_total = 0
+        self.run_completed = 0
+        self.run_success = 0
 
         self.setWindowTitle(f"ISP NetOps Tool - logged in as {username}")
         self.resize(1100, 700)
@@ -176,6 +179,11 @@ class MainWindow(QMainWindow):
 
         self.status_label = QLabel("Idle.")
         right_layout.addWidget(self.status_label)
+
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setTextVisible(True)
+        self.progress_bar.setVisible(False)
+        right_layout.addWidget(self.progress_bar)
 
         self.results_table = QTableWidget(0, 3)
         self.results_table.setHorizontalHeaderLabels(["Device", "Status", "Duration (s)"])
@@ -375,6 +383,12 @@ class MainWindow(QMainWindow):
         self.retry_btn.setEnabled(False)
         self.run_btn.setEnabled(False)
         self.cancel_btn.setEnabled(True)
+        self.run_total = len(checked_devices)
+        self.run_completed = 0
+        self.run_success = 0
+        self.progress_bar.setMaximum(self.run_total)
+        self.progress_bar.setValue(0)
+        self.progress_bar.setVisible(True)
         self.status_label.setText(f"Running {len(commands)} command(s) on {len(checked_devices)} device(s)...")
 
         self.last_run_commands = commands
@@ -433,11 +447,22 @@ class MainWindow(QMainWindow):
             self.results_table.setCurrentCell(row, 0)
             self._on_result_row_selected()
 
+        self.run_completed += 1
+        if result.success:
+            self.run_success += 1
+        self.progress_bar.setValue(self.run_completed)
+        failed_so_far = self.run_completed - self.run_success
+        self.status_label.setText(
+            f"Running... {self.run_completed}/{self.run_total} device(s) complete "
+            f"({self.run_success} succeeded, {failed_so_far} failed)"
+        )
+
     def _on_run_finished(self, results):
         """Restore controls, summarize completion, audit the run, and save metadata."""
         self.run_btn.setEnabled(True)
         self.cancel_btn.setEnabled(False)
         self.export_btn.setEnabled(True)
+        self.progress_bar.setVisible(False)
         success_count = sum(1 for r in results if r.success)
         cancelled = sum(1 for r in results if r.error == "Cancelled by operator")
         self.retry_btn.setEnabled(any(not r.success for r in results))
@@ -457,6 +482,7 @@ class MainWindow(QMainWindow):
         """Handle a worker-level JumpServer failure separately from device results."""
         self.run_btn.setEnabled(True)
         self.cancel_btn.setEnabled(False)
+        self.progress_bar.setVisible(False)
         self.status_label.setText("Run failed.")
         audit_log.log_event("bulk_run_failed", username=self.username, detail=message)
         QMessageBox.critical(self, "JumpServer error", message)
