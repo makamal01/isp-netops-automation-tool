@@ -53,6 +53,24 @@ def test_stage_result_and_validation_result_models():
     assert result.overall_status == "passed"
 
 
+def test_validation_engine_requires_real_devices():
+    """The engine must never fabricate a 'passed' result without actually
+    checking a device - no devices means we can't claim anything passed."""
+    import pytest
+
+    engine = ValidationEngine()
+    request = ValidationRequest(
+        side_a="10.0.0.1", side_b="10.0.0.2",
+        vendor="Cisco", platform="IOS-XR", service_type="L3VPN",
+    )
+
+    with pytest.raises(ValueError):
+        engine.validate(request)
+
+    with pytest.raises(ValueError):
+        engine.validate(request, devices=[])
+
+
 def test_validation_engine_runs_stage_profiles_for_devices(monkeypatch):
     device = Device(
         name="core-rtr-01",

@@ -10,10 +10,12 @@ from app.core.validation.parsers import parse_stage_output
 
 
 class ValidationEngine:
-    """Minimal validation engine scaffold for layered MPLS/VPN checks.
+    """Layered MPLS/VPN path validation: runs each stage's command profile
+    against real devices over SSH and reports per-device evidence.
 
-    This intentionally keeps the implementation conservative and isolated from the
-    stable bulk command workflow already used by the GUI.
+    Every result is grounded in an actual device response - there is no
+    offline/no-device mode, because a fabricated "passed" result would be
+    worse than no result at all for something operators use as evidence.
     """
 
     _stage_order = [
@@ -33,64 +35,12 @@ class ValidationEngine:
         devices: Optional[list] = None,
         jump_config: Optional[JumpServerConfig] = None,
     ) -> ValidationResult:
-        stage_results: list[StageResult] = []
-
-        if devices:
-            return self._validate_devices(request, devices, jump_config=jump_config)
-
-        for stage_name in self._stage_order:
-            profiles = get_profiles_for(request.vendor, request.platform, stage_name)
-            if not profiles:
-                stage_results.append(
-                    StageResult(
-                        stage=stage_name,
-                        status="unknown",
-                        vendor=request.vendor,
-                        platform=request.platform,
-                        commands=[],
-                        raw_output="No command profile found for the selected vendor/platform/stage.",
-                        parsed_summary={"status": "not_configured"},
-                        evidence=["Command profile not available."],
-                        next_step="Add a vendor command profile for this validation stage.",
-                        confidence="low",
-                    )
-                )
-                continue
-
-            profile = profiles[0]
-            stage_result = StageResult(
-                stage=stage_name,
-                status="passed",
-                vendor=request.vendor,
-                platform=request.platform,
-                commands=profile.command_list,
-                raw_output="Profile selected successfully; command execution not yet wired to a live device.",
-                parsed_summary={
-                    "protocol": profile.protocol,
-                    "status": "passed",
-                    "success_indicators": profile.success_indicators,
-                },
-                evidence=["Validation scaffold is active for this stage."],
-                next_step="Proceed with the next validation stage.",
-                confidence="medium",
+        if not devices:
+            raise ValueError(
+                "ValidationEngine.validate() requires at least one real device; "
+                "it does not produce results without checking live devices."
             )
-            stage_results.append(stage_result)
 
-        return ValidationResult(
-            overall_status="passed",
-            failed_stage=None,
-            stage_results=stage_results,
-            root_cause="None detected in scaffold mode.",
-            recommendation="Connect this validation engine to real device command execution in a later implementation phase.",
-            summary="Validation stages were initialized successfully in the proof-of-concept scaffold.",
-        )
-
-    def _validate_devices(
-        self,
-        request: ValidationRequest,
-        devices: list,
-        jump_config: Optional[JumpServerConfig] = None,
-    ) -> ValidationResult:
         stage_results: list[StageResult] = []
         stage_name = request.protocol_focus.lower().replace("/", "_").replace(" ", "_") if request.protocol_focus else "igp"
 
@@ -114,7 +64,6 @@ class ValidationEngine:
             if requested_stage:
                 stage_name = requested_stage
 
-        relevant_stages = [stage_name] if stage_name in self._stage_order else self._stage_order
         if request.mode == "single_stage":
             relevant_stages = [stage_name] if stage_name in self._stage_order else self._stage_order
         else:

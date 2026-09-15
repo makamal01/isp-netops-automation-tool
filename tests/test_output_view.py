@@ -70,3 +70,30 @@ def test_first_result_is_shown_without_manual_row_selection(qapp):
     window._on_device_result(result)
 
     assert window.output_view.toPlainText() == "--- show version ---\nIOS-XE test"
+
+
+def _row_device_names(table):
+    return [table.item(row, 0).text() for row in range(table.rowCount())]
+
+
+def test_clear_rows_for_devices_only_removes_named_devices(qapp):
+    """Retrying failed devices must not discard evidence already collected
+    for devices that succeeded in the same run."""
+    ok_result = DeviceResult(
+        device_name="core-1", host="192.0.2.1", success=True,
+        output="--- show version ---\nOK", duration_seconds=0.1,
+    )
+    failed_result = DeviceResult(
+        device_name="edge-1", host="192.0.2.2", success=False,
+        output="", duration_seconds=0.1, error="Connection timed out",
+    )
+    window = MainWindow.__new__(MainWindow)
+    window.results_table = QTableWidget(2, 3)
+    window.results_table.setItem(0, 0, QTableWidgetItem("core-1"))
+    window.results_table.setItem(1, 0, QTableWidgetItem("edge-1"))
+    window.results_by_device = {"core-1": ok_result, "edge-1": failed_result}
+
+    window._clear_rows_for_devices({"edge-1"})
+
+    assert _row_device_names(window.results_table) == ["core-1"]
+    assert window.results_by_device == {"core-1": ok_result}

@@ -16,6 +16,7 @@ from app.core.command_runner import run_bulk, DeviceResult, JumpServerError
 from app.core.command_safety import filter_safe_commands
 from app.core.report import build_text_report, format_device_output
 from app.core.jump_server import JumpServerManager
+from app.core.deployment_policy import get_deployment_policy
 from app.gui.device_dialog import DeviceDialog
 from app.gui.jump_server_dialog import JumpServerDialog
 from app.gui.validation_dialog import ValidationDialog
@@ -64,9 +65,10 @@ class MainWindow(QMainWindow):
         self.username = username
         self.device_manager = DeviceManager()
         self.jump_server_manager = JumpServerManager()
+        self.deployment_policy = get_deployment_policy()
         self.results_by_device = {}
         self.last_run_commands = []
-        self.last_run_safe_mode = True
+        self.last_run_safe_mode = self.deployment_policy.safe_mode_default
         self.thread = None
         self.worker = None
         self.cancel_event = None
@@ -144,7 +146,12 @@ class MainWindow(QMainWindow):
 
         controls = QHBoxLayout()
         self.safe_mode_checkbox = QCheckBox("Safe mode (block config/disruptive commands)")
-        self.safe_mode_checkbox.setChecked(True)
+        self.safe_mode_checkbox.setChecked(self.deployment_policy.safe_mode_default)
+        self.safe_mode_checkbox.setEnabled(not self.deployment_policy.allow_unsafe_commands)
+        if not self.deployment_policy.allow_unsafe_commands:
+            self.safe_mode_checkbox.setToolTip(
+                "This deployment is configured for managed-laptop, jumpserver-only use with read-only safety rules."
+            )
         controls.addWidget(self.safe_mode_checkbox)
 
         self.run_btn = QPushButton("Run on selected devices")
@@ -298,8 +305,22 @@ class MainWindow(QMainWindow):
 
     # ---------- Command execution ----------
 
-    def _on_run_clicked(self):
-        """Validate scope, reset run state, and start the worker-thread execution."""
+    def _clear_rows_for_devices(self, device_names):
+        """Remove only the named devices' rows/results, so a retry-scoped run
+        doesn't discard evidence already collected for other devices."""
+        for row in reversed(range(self.results_table.rowCount())):
+            name = self.results_table.item(row, 0).text()
+            if name in device_names:
+                self.results_table.removeRow(row)
+                self.results_by_device.pop(name, None)
+
+    def _on_run_clicked(self, retry_devices=None):
+        """Validate scope, reset run state, and start the worker-thread execution.
+
+        `retry_devices`, when set, scopes the reset to just those device names
+        (see _on_retry_failed_clicked) so devices that already succeeded keep
+        their results in the table and in any subsequent export.
+        """
         checked_devices = [
             self.device_manager.list_devices()[i]
             for i in range(self.device_list.count())
@@ -314,6 +335,23 @@ class MainWindow(QMainWindow):
             QMessageBox.warning(self, "No commands", "Enter at least one command.")
             return
 
+        if not self.jump_server_manager.get_config().enabled:
+            QMessageBox.warning(
+                self,
+                "JumpServer required",
+                "This deployment is configured for managed-laptop access via a jumpserver only. "
+                "Configure a jumpserver before running commands.",
+            )
+            return
+
+        if not self.deployment_policy.allow_unsafe_commands and not self.safe_mode_checkbox.isChecked():
+            self.safe_mode_checkbox.setChecked(True)
+            QMessageBox.warning(
+                self,
+                "Safe mode enforced",
+                "This organization deployment requires safe mode for all runs. Unsafe commands require an explicit approval workflow.",
+            )
+
         if self.safe_mode_checkbox.isChecked():
             commands, rejected = filter_safe_commands(raw_commands)
             if rejected:
@@ -327,9 +365,12 @@ class MainWindow(QMainWindow):
         else:
             commands = raw_commands
 
-        self.results_table.setRowCount(0)
-        self.results_by_device.clear()
-        self.output_view.clear()
+        if retry_devices is None:
+            self.results_table.setRowCount(0)
+            self.results_by_device.clear()
+            self.output_view.clear()
+        else:
+            self._clear_rows_for_devices(retry_devices)
         self.export_btn.setEnabled(False)
         self.retry_btn.setEnabled(False)
         self.run_btn.setEnabled(False)
@@ -378,7 +419,7 @@ class MainWindow(QMainWindow):
             self.device_list.item(index).setCheckState(
                 Qt.Checked if device.name in failed_names else Qt.Unchecked
             )
-        self._on_run_clicked()
+        self._on_run_clicked(retry_devices=failed_names)
 
     def _on_device_result(self, result: DeviceResult):
         self.results_by_device[result.device_name] = result

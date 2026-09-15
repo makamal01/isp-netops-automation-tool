@@ -82,9 +82,15 @@ _STAGE_PATTERNS = {
         "negative": [
             r"Idle",
             r"Connect",
-            r"\bDown\b",
             r"not established",
             r"peer.*down",
+        ],
+        # 'show/display bgp summary' has an 'Up/Down' column (time since the
+        # last state change) in every vendor's output - it is not a BGP FSM
+        # state (real states are Idle/Connect/Active/OpenSent/OpenConfirm/
+        # Established) and must never be read as a failure signal.
+        "neutral": [
+            r"Up/Down",
         ],
     },
     "mp_bgp_vpn": {
