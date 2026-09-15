@@ -161,7 +161,10 @@ def run_commands_on_device(
         duration = time.monotonic() - start
         message = str(exc)
         if "not found in known_hosts" in message:
-            message = f"SSH host-key error: {message} Add the verified key for {device.host} to the application known_hosts file."
+            message = (
+                f"SSH host-key error: {message} "
+                f"Use Host Keys > Trust SSH Host Key... to fetch and confirm the current key for {device.host}."
+            )
         else:
             message = f"Connection timed out: {message}"
         return DeviceResult(device.name, device.host, False, "", duration, message)
@@ -173,11 +176,13 @@ def run_commands_on_device(
             False,
             "",
             duration,
-            f"SSH host-key or protocol error: {exc}",
+            f"SSH host-key or protocol error: {exc} "
+            f"If the device's key changed unexpectedly, verify it out-of-band, then use "
+            f"Host Keys > Trust SSH Host Key... to update the trusted key for {device.host}.",
         )
     except Exception as exc:  # noqa: BLE001 - surface any driver/vendor error to the UI
         duration = time.monotonic() - start
-        return DeviceResult(device.name, device.host, False, "", duration, str(exc))
+        return DeviceResult(device.name, device.host, False, "", duration, f"Unexpected error: {exc}")
 
 
 def run_bulk(
