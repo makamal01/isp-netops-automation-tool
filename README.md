@@ -5,6 +5,7 @@ and evolving roadmap, see [ISP_NETOPS_PRODUCT_OVERVIEW.md](ISP_NETOPS_PRODUCT_OV
 For the step-by-step NOC operating procedure, see [NOC_OPERATOR_MANUAL.md](NOC_OPERATOR_MANUAL.md).
 For architecture, installation, troubleshooting, testing, and extension guidance,
 see [DEVELOPER_TECHNICAL_GUIDE.md](DEVELOPER_TECHNICAL_GUIDE.md).
+For what changed in each release, see [CHANGELOG.md](CHANGELOG.md).
 
 A lightweight, deployable-on-a-laptop desktop app for NOC/network engineers
 to run **bulk show/read-only commands** across multiple routers from
