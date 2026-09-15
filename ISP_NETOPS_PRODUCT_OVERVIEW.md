@@ -85,7 +85,7 @@ as CSV without adding a proprietary spreadsheet dependency to the desktop app.
 
 ### 3. Bulk command execution
 
-Operators enter one command per line and select the devices to include. The application runs the commands concurrently using a bounded worker pool.
+Operators enter one command per line and select the devices to include. The application runs the commands concurrently using a bounded worker pool. Concurrency and per-command timeout are adjustable next to the Run button, so an operator can tune a run for a small lab or a large inventory without editing configuration files.
 
 Typical use cases include:
 
@@ -98,9 +98,9 @@ Typical use cases include:
 - Post-maintenance validation
 - Evidence collection for support tickets
 
-Each device produces an individual result with status, duration, output, or an actionable error.
+Each device produces an individual result with status, duration, output, or an actionable error. A live progress indicator shows how many devices have completed, and how many succeeded or failed, as results stream in during the run.
 
-Operators can cancel a run cooperatively. Devices that have not started are skipped, while an active SSH operation is allowed to finish or reach its timeout cleanly. Failed and cancelled devices can be retried using the same command set without rerunning successful devices.
+Operators can cancel a run cooperatively. Devices that have not started are skipped, while an active SSH operation is allowed to finish or reach its timeout cleanly. Failed and cancelled devices can be retried using the same command set without rerunning successful devices - and without losing the successful devices' results, which stay available for review and export alongside the retried ones.
 
 ### 4. Safe mode
 
@@ -223,6 +223,8 @@ The jump-server workflow supports:
 Each router still authenticates with its own device credentials.
 
 SSH host keys are verified strictly. The application uses system SSH host keys and can use its local application `known_hosts` file; unknown keys are rejected instead of being trusted automatically.
+
+An in-app enrollment workflow (**Host Keys > Trust SSH Host Key...**) lets an operator fetch the key a device or jump server presents - without authenticating or running any command, and optionally through the configured jump server - review its type and SHA256 fingerprint, and explicitly confirm trust before the application will use it. The confirmed key is recorded locally and the action is audit-logged.
 
 ### 9. Local authentication and MFA
 
@@ -360,7 +362,6 @@ These are product opportunities and are not all part of the current desktop impl
 
 The following areas are natural extensions for future releases:
 
-- Per-device progress indicators
 - Searchable output
 - Device groups, tags, and filters
 - Configurable command profiles
@@ -368,7 +369,6 @@ The following areas are natural extensions for future releases:
 - Report comparison and change detection
 - Centralized user and role management
 - Centralized audit logging
-- Stronger SSH host-key verification
 - Scheduled health checks
 - Alerting and notifications
 - API access for automation
@@ -424,4 +424,4 @@ When a feature is added, update:
 
 ## Current Product Status
 
-The current implementation is a Windows-focused PySide6 desktop application with local storage, SSH-based multi-vendor execution, safe-mode filtering, jump-server support, parsed and raw output preservation, local authentication, MFA, audit logging, and text-based operational exports.
+The current implementation is a Windows-focused PySide6 desktop application with local storage, SSH-based multi-vendor execution, live per-device run progress, safe-mode filtering, jump-server support, in-app SSH host-key enrollment, parsed and raw output preservation, local authentication, MFA, audit logging, and text-based operational exports.

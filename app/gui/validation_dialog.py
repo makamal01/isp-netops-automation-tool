@@ -17,10 +17,11 @@ from app.core.validation.models import ValidationRequest
 
 
 class ValidationDialog(QDialog):
-    """Simple, non-invasive validation dashboard scaffold.
+    """MPLS/VPN path validation dashboard: runs the layered stage checks
+    against two selected devices and shows per-stage, per-device evidence.
 
-    This is intentionally limited to a safe first UI hook. It uses the staged
-    model and does not alter the current bulk command app logic.
+    Reuses the staged validation model and device-connection primitives
+    without altering the bulk command execution workflow.
     """
 
     def __init__(self, parent=None):

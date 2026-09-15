@@ -3,7 +3,7 @@
 
 **Audience:** software engineers, network automation engineers, security reviewers, release engineers, and technical leads  
 **Status:** living engineering document  
-**Last reviewed:** 2026-09-10
+**Last reviewed:** 2026-09-15
 
 ## 1. Purpose and Scope
 
@@ -22,8 +22,10 @@ This guide describes the current implementation. It does not claim that the proj
 - Device inventory management and CSV onboarding
 - Multi-vendor SSH command execution
 - Optional JumpServer proxy routing
+- In-app SSH host-key fetch/trust enrollment
 - Safe-mode filtering for obvious disruptive commands
 - Parsed and raw output preservation
+- Layered MPLS/VPN path validation (IGP/MPLS/LSP/BGP/MP-BGP-VPN) against real devices
 - Operational reports and exports
 - Local audit logging
 
@@ -51,28 +53,41 @@ app/
   core/
     command_runner.py             Netmiko execution, Paramiko proxying, results
     command_safety.py             Safe-mode command filtering
+    deployment_policy.py          Managed-laptop/jumpserver-only org safety defaults
     device_manager.py             Device model, encrypted inventory, CSV import
     jump_server.py                JumpServer configuration and persistence
     host_key_manager.py           Fetch/trust SSH host keys without authenticating
     report.py                     Parsed/raw report formatting and summary reports
     vendors.py                    User vendor names to Netmiko device types
+    validation/
+      engine.py                   Layered IGP/MPLS/LSP/BGP/VPN validation against real devices
+      command_profiles.py         Per-vendor/platform/stage command profiles
+      parsers.py                  Stage output -> pass/fail/unknown + evidence
+      models.py                   ValidationRequest/StageResult/ValidationResult dataclasses
   gui/
     login_window.py               Login, first-run account setup, MFA flow
     main_window.py                Device list, run controls, result display/export
     device_dialog.py              Add/edit device form and validation
     jump_server_dialog.py         JumpServer configuration and test action
     host_key_dialog.py            In-app SSH host-key fetch/trust flow
+    validation_dialog.py          MPLS path validation dashboard
     mfa_window.py                 MFA enrollment and verification dialogs
   utils/
     crypto.py                     Fernet encryption/decryption
     audit_log.py                  Rotating local audit log
 
 tests/
-  test_command_runner.py          Mocked execution and SSH safety tests
+  test_command_runner.py          Mocked execution, SSH safety, and error-message tests
+  test_command_safety.py          Safe-mode false-positive/blocking coverage
+  test_deployment_policy.py       Org safety-default coverage
   test_device_import.py           CSV template coverage
   test_device_validation.py       Inventory validation coverage
-  test_output_view.py             GUI output-selection coverage
-  test_report.py                 Parsed/raw/report format coverage
+  test_host_key_manager.py        Host-key fetch/trust coverage
+  test_output_view.py             GUI output-selection and run-progress coverage
+  test_report.py                  Parsed/raw/report format coverage
+  test_run_settings.py            Concurrency/timeout GUI-control coverage
+  test_validation_engine.py       Validation engine stage/device orchestration coverage
+  test_validation_parsers_fixtures.py  Fixture-based parser coverage per vendor/stage
 
 README.md                         Development setup and user-facing overview
 NOC_OPERATOR_MANUAL.md            NOC runbook and method of procedure
@@ -385,8 +400,12 @@ Back up the affected file under `%APPDATA%\ISPNetOpsTool\`, inspect its JSON/YAM
 - Atomic local writes
 - Dedicated report formatting
 - Mocked network boundary tests
+- Fixture-based parser regression coverage across all vendor/stage combinations
 - Documentation for operators and product stakeholders
 - GitHub exclusion rules for local secrets and router data
+- Live per-device run progress
+- In-app SSH host-key enrollment with audit logging
+- Consistent, actionable device-error categorization shared by the bulk-run and validation paths
 
 ### Gaps before broad ISP production deployment
 
@@ -397,7 +416,6 @@ Back up the affected file under `%APPDATA%\ISPNetOpsTool\`, inspect its JSON/YAM
 - No live integration test matrix in CI
 - No automated dependency vulnerability scanning
 - No signed release/update process
-- No comprehensive per-device progress model
 - Safe mode remains pattern-based rather than a vendor-aware allowlist
 - No formal threat model or security review record
 - No performance baseline for large inventories and jump-server channel limits

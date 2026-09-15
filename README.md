@@ -21,11 +21,24 @@ different vendors (Cisco, Huawei, Nokia) at the same time.
   - Huawei VRP
   - Nokia SR OS (classic) and SR Linux
 - **Bulk execution** against any number of devices concurrently
-  (thread pool, tested conceptually up to ~100+ devices; today configured
-  for 1 device per vendor as a starting inventory).
+  (thread pool, adjustable concurrency and per-command timeout in the GUI;
+  tested conceptually up to ~100+ devices). A live per-device progress bar
+  and status line show completed/succeeded/failed counts as a run streams
+  in, and failed devices can be retried without losing the successful ones'
+  results.
 - **Safe mode** blocks obvious config/disruptive commands (e.g.
   `configure`, `reload`, `write erase`, `delete`) so the tool stays
-  read-only for now, even if someone pastes the wrong command.
+  read-only for now, even if someone pastes the wrong command — without
+  blocking ordinary read-only commands that merely mention a blocked word
+  in a `| include` display filter.
+- **MPLS/VPN path validation** — a layered IGP/MPLS/LSP/BGP/MP-BGP-VPN
+  check (**Validation > MPLS Path Validation...**) that runs each stage's
+  command profile against two real devices and reports per-device
+  pass/fail evidence, so an operator can see which side of a path broke.
+- **In-app SSH host-key enrollment** (**Host Keys > Trust SSH Host
+  Key...**) — fetch a device's or jump server's presented key without
+  authenticating, review its fingerprint, and explicitly confirm trust
+  before the app will use it, instead of hand-editing a trust file.
 - **Encrypted local storage** — device passwords and MFA secrets are
   encrypted at rest (Fernet/AES) using a key generated on first run.
 - **Export** per-device command output to text files for tickets/reports.
@@ -37,7 +50,8 @@ app/
   main.py              # entry point
   config.py            # app data dir / file paths
   auth/                # login + MFA
-  core/                # device inventory, vendor mapping, command runner, safety filter
+  core/                # device inventory, vendor mapping, command runner, safety filter,
+                        # host-key fetch/trust, deployment policy, MPLS validation engine
   gui/                 # PySide6 windows/dialogs
   utils/crypto.py       # local encryption helper
 requirements.txt
