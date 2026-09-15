@@ -1,16 +1,19 @@
 """Entry point for the ISP NetOps Tool desktop application."""
 import sys
 
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import QApplication, QMessageBox
 
 from app.auth.auth_manager import AuthManager
 from app.gui.login_window import LoginWindow
 from app.gui.main_window import MainWindow
-from app.config import StorageError
+from app.config import StorageError, ICON_FILE
 
 
 def main():
     app = QApplication(sys.argv)
+    if ICON_FILE.exists():
+        app.setWindowIcon(QIcon(str(ICON_FILE)))
     try:
         auth_manager = AuthManager()
 

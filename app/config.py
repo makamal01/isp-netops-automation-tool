@@ -1,5 +1,6 @@
 """Application-wide configuration and path constants."""
 import os
+import sys
 from pathlib import Path
 
 APP_NAME = "ISP NetOps Tool"
@@ -26,6 +27,18 @@ def atomic_write_text(path: Path, content: str):
     temporary_path.write_text(content, encoding="utf-8")
     temporary_path.replace(path)
 
+
+def get_assets_dir() -> Path:
+    """Return the app/assets directory, whether running from source or from
+    a PyInstaller --onefile build (which extracts bundled data under a
+    temporary _MEIPASS directory at runtime)."""
+    if getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS"):
+        return Path(sys._MEIPASS) / "app" / "assets"
+    return Path(__file__).resolve().parent / "assets"
+
+
+ASSETS_DIR = get_assets_dir()
+ICON_FILE = ASSETS_DIR / "icon.ico"
 
 APP_DATA_DIR = get_app_data_dir()
 USERS_FILE = APP_DATA_DIR / "users.json"

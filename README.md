@@ -159,6 +159,7 @@ but that should come with its own review/approval workflow.
 ```powershell
 pip install pyinstaller
 pyinstaller --noconfirm --windowed --onefile --name ISP-NetOps-Tool ^
+  --icon app\assets\icon.ico --add-data "app\assets;app\assets" ^
   --collect-all netmiko --collect-all ntc_templates ^
   app/main.py
 ```

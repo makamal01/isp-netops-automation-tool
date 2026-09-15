@@ -47,6 +47,9 @@ These boundaries matter when evaluating new feature requests. A request that int
 app/
   main.py                         Application entry point
   config.py                       App-data paths, policy constants, atomic writes
+  assets/
+    icon.ico                      App/window/taskbar icon (multi-size)
+    icon.png                      Reference PNG the .ico was rendered from
   auth/
     auth_manager.py               Local users, bcrypt, lockout, MFA secret state
     mfa_manager.py                TOTP secret and verification helpers
@@ -236,9 +239,16 @@ The current packaging direction is PyInstaller:
 ```powershell
 python -m pip install pyinstaller
 pyinstaller --noconfirm --windowed --onefile --name ISP-NetOps-Tool `
+  --icon app/assets/icon.ico --add-data "app/assets;app/assets" `
   --collect-all netmiko --collect-all ntc_templates `
   app/main.py
 ```
+
+`--icon` sets the .exe file's own icon; `--add-data` bundles `app/assets/` into
+the packaged build so `app.config.ICON_FILE` (resolved via `sys._MEIPASS` when
+frozen) can still find it at runtime to set the window/taskbar icon. Both are
+required - omitting `--add-data` leaves the .exe's file icon correct but the
+running window with no icon.
 
 Validate the packaged executable on a clean test workstation. In particular, verify Qt plugins, Netmiko drivers, TextFSM templates, AppData creation, and host-key loading.
 
