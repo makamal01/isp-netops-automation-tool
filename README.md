@@ -159,13 +159,11 @@ you deliberately share the `devices.yaml`/`users.json`/`secret.key` files
 ## Scaling to ~100 devices
 
 - `run_bulk()` in `app/core/command_runner.py` uses a `ThreadPoolExecutor`
-  (default `max_workers=20`) so runs against many devices happen in
-  parallel rather than one-by-one. Increase `max_workers` in
-  `MainWindow._on_run_clicked` if your network/CPU can handle more
-  concurrent SSH sessions.
-- Consider importing a bulk device list (CSV/YAML) instead of adding
-  devices one at a time — this can be added as a follow-up feature
-  (`DeviceManager` already supports programmatic `add_device()`).
+  so runs against many devices happen in parallel rather than one-by-one.
+  Adjust **Max concurrent** and **Timeout (s)** next to the Run button if
+  your network/CPU can handle more (or needs fewer) concurrent SSH sessions.
+- Use **Devices > Import Devices from CSV...** to add many devices at once
+  instead of one at a time (see "Bulk device import (CSV)" above).
 
 ## Security notes
 

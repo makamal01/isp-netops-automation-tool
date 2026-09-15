@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QMainWindow, QWidget, QSplitter, QListWidget, QListWidgetItem, QPushButton,
     QVBoxLayout, QHBoxLayout, QPlainTextEdit, QTableWidget, QTableWidgetItem,
     QTextEdit, QLabel, QCheckBox, QFileDialog, QMessageBox, QInputDialog,
-    QLineEdit, QDialog, QProgressBar
+    QLineEdit, QDialog, QProgressBar, QSpinBox
 )
 from PySide6.QtCore import Qt, QThread, QObject, Signal
 
@@ -25,7 +25,7 @@ from app.auth.auth_manager import AuthManager
 from app.auth import mfa_manager
 from app.gui.mfa_window import MfaEnrollDialog
 from app.utils import audit_log
-from app.config import REPORTS_DIR
+from app.config import REPORTS_DIR, DEFAULT_MAX_WORKERS, DEFAULT_SSH_TIMEOUT
 
 
 class BulkRunner(QObject):
@@ -160,6 +160,20 @@ class MainWindow(QMainWindow):
                 "This deployment is configured for managed-laptop, jumpserver-only use with read-only safety rules."
             )
         controls.addWidget(self.safe_mode_checkbox)
+
+        controls.addWidget(QLabel("Max concurrent:"))
+        self.max_workers_spin = QSpinBox()
+        self.max_workers_spin.setRange(1, 200)
+        self.max_workers_spin.setValue(DEFAULT_MAX_WORKERS)
+        self.max_workers_spin.setToolTip("How many devices to connect to at once.")
+        controls.addWidget(self.max_workers_spin)
+
+        controls.addWidget(QLabel("Timeout (s):"))
+        self.timeout_spin = QSpinBox()
+        self.timeout_spin.setRange(1, 600)
+        self.timeout_spin.setValue(DEFAULT_SSH_TIMEOUT)
+        self.timeout_spin.setToolTip("Per-command SSH read timeout, in seconds.")
+        controls.addWidget(self.timeout_spin)
 
         self.run_btn = QPushButton("Run on selected devices")
         self.run_btn.clicked.connect(self._on_run_clicked)
@@ -411,7 +425,8 @@ class MainWindow(QMainWindow):
         jump_config = self.jump_server_manager.get_config()
         self.cancel_event = Event()
         self.worker = BulkRunner(
-            checked_devices, commands, max_workers=20, timeout=15,
+            checked_devices, commands,
+            max_workers=self.max_workers_spin.value(), timeout=self.timeout_spin.value(),
             jump_config=jump_config, cancel_event=self.cancel_event,
         )
         self.worker.moveToThread(self.thread)
