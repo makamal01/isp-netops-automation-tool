@@ -53,6 +53,7 @@ app/
     command_safety.py             Safe-mode command filtering
     device_manager.py             Device model, encrypted inventory, CSV import
     jump_server.py                JumpServer configuration and persistence
+    host_key_manager.py           Fetch/trust SSH host keys without authenticating
     report.py                     Parsed/raw report formatting and summary reports
     vendors.py                    User vendor names to Netmiko device types
   gui/
@@ -60,6 +61,7 @@ app/
     main_window.py                Device list, run controls, result display/export
     device_dialog.py              Add/edit device form and validation
     jump_server_dialog.py         JumpServer configuration and test action
+    host_key_dialog.py            In-app SSH host-key fetch/trust flow
     mfa_window.py                 MFA enrollment and verification dialogs
   utils/
     crypto.py                     Fernet encryption/decryption
@@ -160,7 +162,7 @@ Never commit any of these files. The `.gitignore` excludes local inventories, re
 
 Direct device connections use Netmiko strict host-key options and the application `known_hosts` file. JumpServer connections use Paramiko with system host keys plus the application host-key file and reject unknown keys.
 
-This intentionally prevents silent trust of a new host. A first-run enrollment workflow is still a product opportunity: it should display the fingerprint, require an operator confirmation, and record the enrollment event.
+This intentionally prevents silent trust of a new host. **Host Keys > Trust SSH Host Key...** in the main window provides this enrollment workflow: it negotiates the SSH transport handshake (via `host_key_manager.fetch_host_key`) without authenticating, displays the key type and SHA256 fingerprint, requires an explicit operator confirmation, writes the trusted entry to `known_hosts`, and records a `host_key_trusted` audit event. It supports fetching through the configured JumpServer as well as directly, mirroring the proxied-channel pattern `run_bulk()` uses.
 
 ### Legacy device algorithms
 
@@ -421,15 +423,14 @@ The code is maintainable for a small team and a controlled desktop product. It i
 
 ## 13. Suggested Next Engineering Milestones
 
-1. Add an explicit host-key enrollment UI with fingerprint confirmation.
-2. Add vendor-aware SSH compatibility profiles for legacy devices.
-3. Add jump-server integration tests using a local Paramiko fixture.
-4. Add structured JSON export with a versioned schema.
-5. Add per-device progress and a robust cancellation state machine.
-6. Move secrets to Windows DPAPI or a managed secret provider.
-7. Add CI with tests, linting, dependency scanning, and packaging smoke tests.
-8. Add a formal migration layer for local stores.
-9. Add role enforcement and centralized audit collection for team deployments.
+1. Add vendor-aware SSH compatibility profiles for legacy devices.
+2. Add jump-server integration tests using a local Paramiko fixture.
+3. Add structured JSON export with a versioned schema.
+4. Add a robust cancellation state machine (per-device progress landed; see Host-key verification section for the enrollment UI, also landed).
+5. Move secrets to Windows DPAPI or a managed secret provider.
+6. Add CI with tests, linting, dependency scanning, and packaging smoke tests.
+7. Add a formal migration layer for local stores.
+8. Add role enforcement and centralized audit collection for team deployments.
 
 ## 14. Handoff Checklist
 

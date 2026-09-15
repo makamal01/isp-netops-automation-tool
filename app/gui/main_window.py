@@ -20,6 +20,7 @@ from app.core.deployment_policy import get_deployment_policy
 from app.gui.device_dialog import DeviceDialog
 from app.gui.jump_server_dialog import JumpServerDialog
 from app.gui.validation_dialog import ValidationDialog
+from app.gui.host_key_dialog import HostKeyDialog
 from app.auth.auth_manager import AuthManager
 from app.auth import mfa_manager
 from app.gui.mfa_window import MfaEnrollDialog
@@ -98,6 +99,9 @@ class MainWindow(QMainWindow):
 
         jump_menu = menu.addMenu("JumpServer")
         jump_menu.addAction("Configure JumpServer...").triggered.connect(self._configure_jump_server)
+
+        host_key_menu = menu.addMenu("Host Keys")
+        host_key_menu.addAction("Trust SSH Host Key...").triggered.connect(self._open_host_key_dialog)
 
         validation_menu = menu.addMenu("Validation")
         validation_menu.addAction("MPLS Path Validation...").triggered.connect(self._open_validation_dialog)
@@ -272,6 +276,10 @@ class MainWindow(QMainWindow):
 
     def _open_validation_dialog(self):
         dialog = ValidationDialog(self)
+        dialog.exec()
+
+    def _open_host_key_dialog(self):
+        dialog = HostKeyDialog(self.jump_server_manager, username=self.username, parent=self)
         dialog.exec()
 
     def _selected_device_index(self):

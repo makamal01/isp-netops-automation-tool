@@ -61,6 +61,12 @@ Create the first administrator account when prompted. Use a strong password and 
 
 Host keys must be verified through an approved source before they are trusted. Do not blindly accept a changed key.
 
+**Preferred method - in-app enrollment:**
+
+Open **Host Keys -> Trust SSH Host Key...**, enter the host/IP (and port if not 22), optionally check **Fetch through configured JumpServer** if the device is only reachable that way, then click **Fetch Key**. The application shows the key type and SHA256 fingerprint without logging in to the device. Compare this fingerprint against an approved out-of-band source (the device's own CLI, a change ticket, the network owner) before clicking **Trust and Save**. The confirmed key is written to the application's trust file and the action is recorded in the audit log as `host_key_trusted`.
+
+**Manual fallback:**
+
 The application trust file is:
 
 ```text
