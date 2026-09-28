@@ -473,6 +473,7 @@ The code is maintainable for a small team and a controlled desktop product. It i
 5. Move secrets to Windows DPAPI or a managed secret provider.
 6. Add CI with tests, linting, dependency scanning, and packaging smoke tests.
 7. Add a formal migration layer for local stores.
+8. (Parked) Optional AI assistant add-on to explain output and failed validation layers. Only after the non-AI core is refined; see `AI_ASSISTANT_PARKED_NOTES.md` for research, decisions, and the first step.
 8. Add role enforcement and centralized audit collection for team deployments.
 
 ## 14. Handoff Checklist
