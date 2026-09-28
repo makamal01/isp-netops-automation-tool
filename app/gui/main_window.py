@@ -1,4 +1,5 @@
 """Main application window: device inventory + bulk command execution."""
+from collections import Counter
 from datetime import datetime
 from pathlib import Path
 from threading import Event
@@ -12,7 +13,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QThread, QObject, Signal
 
 from app.core.device_manager import DeviceManager
-from app.core.device_filter import ALL_VENDORS, filter_options, matches, selection_summary
+from app.core.device_filter import ALL_VENDORS, filter_options, matches, selection_summary, vendor_family
 from app.core.command_runner import run_bulk, DeviceResult, JumpServerError
 from app.core.command_safety import filter_safe_commands
 from app.core.report import build_text_report, format_device_output
@@ -27,6 +28,10 @@ from app.auth import mfa_manager
 from app.gui.mfa_window import MfaEnrollDialog
 from app.utils import audit_log
 from app.config import REPORTS_DIR, DEFAULT_MAX_WORKERS, DEFAULT_SSH_TIMEOUT
+
+# Returned by MainWindow._ask_mixed_vendor_choice when the operator keeps
+# every vendor in a mixed-vendor run (otherwise it returns a brand, or None).
+RUN_ALL_VENDORS = "__all_vendors__"
 
 
 class BulkRunner(QObject):
@@ -460,6 +465,17 @@ class MainWindow(QMainWindow):
         else:
             commands = raw_commands
 
+        # Retries reuse a scope the operator already confirmed, so only fresh
+        # runs are checked. Asked before any state is reset, so Cancel leaves
+        # the previous results on screen.
+        if retry_devices is None and len({vendor_family(d.vendor) for d in checked_devices}) > 1:
+            choice = self._ask_mixed_vendor_choice(checked_devices)
+            if choice is None:
+                return
+            if choice != RUN_ALL_VENDORS:
+                self._uncheck_devices_outside_family(choice)
+                checked_devices = self._checked_devices()
+
         if retry_devices is None:
             self.results_table.setRowCount(0)
             self.results_by_device.clear()
@@ -503,6 +519,39 @@ class MainWindow(QMainWindow):
         self.worker.error.connect(self._on_run_error)
         self.worker.error.connect(self.thread.quit)
         self.thread.start()
+
+    def _ask_mixed_vendor_choice(self, checked_devices):
+        """Ask how to handle a run spanning several brands. Returns
+        RUN_ALL_VENDORS, the brand to keep (e.g. "Cisco"), or None to cancel."""
+        vendor_counts = Counter(device.vendor for device in checked_devices)
+        family_counts = Counter(vendor_family(device.vendor) for device in checked_devices)
+        breakdown = "\n".join(
+            f"    {vendor}: {count}"
+            for vendor, count in sorted(vendor_counts.items(), key=lambda kv: (-kv[1], kv[0]))
+        )
+        box = QMessageBox(self)
+        box.setIcon(QMessageBox.Warning)
+        box.setWindowTitle("Mixed vendors selected")
+        box.setText(
+            f"You're about to run on {len(family_counts)} vendors:\n\n{breakdown}\n\n"
+            "Commands are sent unchanged to every device."
+        )
+        run_all_btn = box.addButton("Run on all", QMessageBox.AcceptRole)
+        family_by_button = {
+            box.addButton(f"Only {family}", QMessageBox.AcceptRole): family
+            for family, _ in family_counts.most_common()
+        }
+        box.setDefaultButton(box.addButton(QMessageBox.Cancel))
+        box.exec()
+        clicked = box.clickedButton()
+        if clicked is run_all_btn:
+            return RUN_ALL_VENDORS
+        return family_by_button.get(clicked)
+
+    def _uncheck_devices_outside_family(self, family):
+        for index, device in enumerate(self.device_manager.list_devices()):
+            if vendor_family(device.vendor) != family:
+                self.device_list.item(index).setCheckState(Qt.Unchecked)
 
     def _on_cancel_clicked(self):
         """Request cooperative cancellation; active network calls are not force-killed."""
