@@ -193,6 +193,11 @@ class MainWindow(QMainWindow):
         self.export_btn.clicked.connect(self._export_results)
         self.export_btn.setEnabled(False)
         controls.addWidget(self.export_btn)
+
+        self.reset_btn = QPushButton("Reset")
+        self.reset_btn.setToolTip("Clear the device status table and output from the last run.")
+        self.reset_btn.clicked.connect(self._on_reset_clicked)
+        controls.addWidget(self.reset_btn)
         right_layout.addLayout(controls)
 
         self.status_label = QLabel("Idle.")
@@ -416,6 +421,7 @@ class MainWindow(QMainWindow):
             self._clear_rows_for_devices(retry_devices)
         self.export_btn.setEnabled(False)
         self.retry_btn.setEnabled(False)
+        self.reset_btn.setEnabled(False)
         self.run_btn.setEnabled(False)
         self.cancel_btn.setEnabled(True)
         self.run_total = len(checked_devices)
@@ -458,6 +464,16 @@ class MainWindow(QMainWindow):
             self.cancel_btn.setEnabled(False)
             self.status_label.setText("Cancelling queued devices...")
 
+    def _on_reset_clicked(self):
+        """Discard the last run's results so the view starts clean. Saved
+        reports and the audit log are untouched."""
+        self.results_table.setRowCount(0)
+        self.results_by_device.clear()
+        self.output_view.clear()
+        self.status_label.setText("Idle.")
+        self.export_btn.setEnabled(False)
+        self.retry_btn.setEnabled(False)
+
     def _on_retry_failed_clicked(self):
         """Rerun the last command set only for devices whose prior result failed."""
         failed_names = {
@@ -496,6 +512,7 @@ class MainWindow(QMainWindow):
     def _on_run_finished(self, results):
         """Restore controls, summarize completion, audit the run, and save metadata."""
         self.run_btn.setEnabled(True)
+        self.reset_btn.setEnabled(True)
         self.cancel_btn.setEnabled(False)
         self.export_btn.setEnabled(True)
         self.progress_bar.setVisible(False)
@@ -517,6 +534,7 @@ class MainWindow(QMainWindow):
     def _on_run_error(self, message: str):
         """Handle a worker-level JumpServer failure separately from device results."""
         self.run_btn.setEnabled(True)
+        self.reset_btn.setEnabled(True)
         self.cancel_btn.setEnabled(False)
         self.progress_bar.setVisible(False)
         self.status_label.setText("Run failed.")

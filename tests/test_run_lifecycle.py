@@ -1,9 +1,10 @@
-"""Regression tests for starting a fresh run from the real Run button,
-over results left behind by a previous run."""
+"""Regression tests for starting a fresh run and resetting run state from
+the real buttons, over results left behind by a previous run."""
 
 from unittest.mock import MagicMock, patch
 
 import pytest
+from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QMainWindow, QTableWidgetItem
 
 from app.core.command_runner import DeviceResult
@@ -81,3 +82,27 @@ def test_second_run_from_run_button_starts_fresh(qapp, no_worker_thread):
     assert window.status_label.text().startswith("Running 1 command(s) on 2 device(s)")
     assert window.run_btn.isEnabled() is False
 
+
+def test_reset_button_clears_previous_run_state(qapp):
+    window = _build_window_with_previous_run(["core-1"])
+    window.retry_btn.setEnabled(True)
+
+    window.reset_btn.click()
+
+    assert window.results_table.rowCount() == 0
+    assert window.results_by_device == {}
+    assert window.output_view.toPlainText() == ""
+    assert window.status_label.text() == "Idle."
+    assert window.export_btn.isEnabled() is False
+    assert window.retry_btn.isEnabled() is False
+
+
+def test_reset_is_disabled_while_a_run_is_in_progress(qapp, no_worker_thread):
+    window = _build_window_with_previous_run(["core-1"])
+    window.device_list.item(0).setCheckState(Qt.Checked)
+
+    window.run_btn.click()
+    assert window.reset_btn.isEnabled() is False
+
+    window._on_run_finished([])
+    assert window.reset_btn.isEnabled() is True

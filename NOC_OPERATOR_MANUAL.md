@@ -310,6 +310,10 @@ Store exports in an approved location. Do not email reports containing sensitive
 - Confirm the original scope is still valid.
 - Confirm the commands are still appropriate.
 
+**Reset** clears the device status table and the Output pane so the next piece of work starts from a clean view. It is disabled while a run is in progress. It does not delete the automatically saved run report or the audit log, so export first if you still need that run's output. Clicking **Run** also starts from a clean view on its own; **Retry failed** is the only action that keeps earlier results.
+
+**Refresh** (above the Output pane) redisplays the selected device's stored output.
+
 ## 12. Security and Data Handling
 
 - Never share application passwords or device credentials in chat, tickets, or reports.
