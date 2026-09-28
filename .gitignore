@@ -30,3 +30,7 @@ secrets/
 .secrets/
 *.sqlite
 *.sqlite3
+
+# Local device inventory exports/imports (contain plaintext credentials)
+network devices.csv
+network devices.xlsx
