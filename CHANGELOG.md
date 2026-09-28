@@ -11,6 +11,13 @@ commit it came from.
 - **Reset** button to clear the device status table and output between runs.
 - **Refresh** button above the Output pane to redisplay the selected
   device's stored output.
+- Vendor filter (with **Cisco (all)** style brand groups) and name/IP
+  search above the device list. **Select All** / **Select None** now act
+  only on the devices shown.
+- Live **Selected:** summary under the device list with a per-vendor count
+  and a warning when checked devices are hidden by the filter.
+- **Mixed vendors selected** prompt before a run whose devices span more
+  than one brand: run on all, keep only one brand, or cancel.
 
 ### Fixed
 - Clicking **Run** a second time did nothing: the new run never started

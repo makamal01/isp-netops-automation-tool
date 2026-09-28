@@ -165,20 +165,26 @@ listed in the import summary; valid rows are still imported.
 1. Open the relevant incident, change, or service ticket.
 2. Confirm the approved device scope.
 3. Check the required devices in the device list.
-4. Use **Select All** only when the entire displayed inventory is in scope.
-5. Enter one approved command per line.
-6. Confirm the command syntax matches the vendor.
+   - Use the vendor dropdown and the **Search name or IP** box above the list to narrow what is shown. **Cisco (all)** covers every Cisco platform.
+   - The filter only hides devices; a hidden device keeps its check state.
+4. Use **Select All** only when the entire displayed inventory is in scope. **Select All** and **Select None** apply only to the devices currently shown.
+5. Read the **Selected:** line under the device list before running. It gives the per-vendor count and flags checked devices hidden by the filter (e.g. `(1 hidden by filter)`).
+6. Enter one approved command per line.
+7. Confirm the command syntax matches the vendor.
    - Cisco/Nokia examples commonly use `show`.
    - Huawei examples commonly use `display`.
-7. Keep **Safe mode** enabled.
-8. Click **Run on selected devices**.
-9. Monitor the results table.
-10. Select a device row to inspect its Output pane.
-11. Review failed devices separately from successful devices.
-12. Use **Cancel** if the run scope is wrong or queued work must stop.
-13. Use **Retry failed** only after checking the cause and confirming retry is appropriate.
-14. Export results when the run is complete.
-15. Attach the appropriate report to the ticket and record the run time and scope.
+8. Keep **Safe mode** enabled.
+9. Click **Run on selected devices**. If the checked devices span more than one vendor brand, a **Mixed vendors selected** prompt lists them:
+   - **Run on all** sends the same commands to every brand.
+   - **Only <brand>** unchecks the others and runs on that brand only.
+   - **Cancel** changes nothing.
+10. Monitor the results table.
+11. Select a device row to inspect its Output pane.
+12. Review failed devices separately from successful devices.
+13. Use **Cancel** if the run scope is wrong or queued work must stop.
+14. Use **Retry failed** only after checking the cause and confirming retry is appropriate.
+15. Export results when the run is complete.
+16. Attach the appropriate report to the ticket and record the run time and scope.
 
 ## 7. Recommended Read-Only Commands
 
