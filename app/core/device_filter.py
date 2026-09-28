@@ -1,6 +1,7 @@
 """Vendor/search filtering rules for the device inventory panel."""
 
-from typing import Iterable, List
+from collections import Counter
+from typing import Iterable, List, Sequence
 
 from app.core.vendors import VENDOR_NAMES
 
@@ -36,3 +37,19 @@ def matches(device, vendor_option: str, search_text: str) -> bool:
         return False
     needle = search_text.strip().lower()
     return not needle or needle in device.name.lower() or needle in device.host.lower()
+
+
+def selection_summary(checked_devices: Sequence, hidden_count: int) -> str:
+    """e.g. "Selected: 12, Cisco IOS-XE 11 · Nokia SR OS 1 (1 hidden by filter)".
+    Calling out hidden devices is the point: a checked device the filter
+    hides would otherwise be run against without the operator seeing it."""
+    if not checked_devices:
+        return "Selected: 0"
+    counts = Counter(device.vendor for device in checked_devices)
+    breakdown = " · ".join(
+        f"{vendor} {count}" for vendor, count in sorted(counts.items(), key=lambda kv: (-kv[1], kv[0]))
+    )
+    summary = f"Selected: {len(checked_devices)}, {breakdown}"
+    if hidden_count:
+        summary += f" ({hidden_count} hidden by filter)"
+    return summary

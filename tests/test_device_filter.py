@@ -2,7 +2,9 @@
 
 from types import SimpleNamespace
 
-from app.core.device_filter import ALL_VENDORS, filter_options, matches, vendor_family
+from app.core.device_filter import (
+    ALL_VENDORS, filter_options, matches, selection_summary, vendor_family,
+)
 
 
 def _device(name, host, vendor):
@@ -54,3 +56,23 @@ def test_vendor_and_search_must_both_match():
     device = _device("POC1-1SROS", "10.246.111.1", "Nokia SR OS")
 
     assert not matches(device, "Cisco (all)", "POC1")
+
+
+def test_selection_summary_with_nothing_checked():
+    assert selection_summary([], hidden_count=0) == "Selected: 0"
+
+
+def test_selection_summary_breaks_down_by_vendor_most_common_first():
+    checked = [
+        _device("pe-1", "10.0.0.3", "Nokia SR OS"),
+        _device("core-1", "10.0.0.1", "Cisco IOS-XE"),
+        _device("core-2", "10.0.0.2", "Cisco IOS-XE"),
+    ]
+
+    assert selection_summary(checked, hidden_count=0) == "Selected: 3, Cisco IOS-XE 2 · Nokia SR OS 1"
+
+
+def test_selection_summary_flags_checked_devices_hidden_by_the_filter():
+    checked = [_device("core-1", "10.0.0.1", "Cisco IOS-XE"), _device("pe-1", "10.0.0.3", "Nokia SR OS")]
+
+    assert selection_summary(checked, hidden_count=1).endswith("(1 hidden by filter)")

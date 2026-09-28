@@ -12,7 +12,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt, QThread, QObject, Signal
 
 from app.core.device_manager import DeviceManager
-from app.core.device_filter import ALL_VENDORS, filter_options, matches
+from app.core.device_filter import ALL_VENDORS, filter_options, matches, selection_summary
 from app.core.command_runner import run_bulk, DeviceResult, JumpServerError
 from app.core.command_safety import filter_safe_commands
 from app.core.report import build_text_report, format_device_output
@@ -133,7 +133,12 @@ class MainWindow(QMainWindow):
         left_layout.addLayout(filter_row)
 
         self.device_list = QListWidget()
+        self.device_list.itemChanged.connect(self._update_selection_summary)
         left_layout.addWidget(self.device_list)
+
+        self.selection_summary_label = QLabel("Selected: 0")
+        self.selection_summary_label.setWordWrap(True)
+        left_layout.addWidget(self.selection_summary_label)
 
         device_btns = QHBoxLayout()
         add_btn = QPushButton("Add")
@@ -268,6 +273,22 @@ class MainWindow(QMainWindow):
         current = self.device_list.currentItem()
         if current is not None and current.isHidden():
             self.device_list.setCurrentRow(-1)
+        self._update_selection_summary()
+
+    def _checked_devices(self):
+        devices = self.device_manager.list_devices()
+        return [
+            devices[i] for i in range(min(self.device_list.count(), len(devices)))
+            if self.device_list.item(i).checkState() == Qt.Checked
+        ]
+
+    def _update_selection_summary(self, *_):
+        checked = self._checked_devices()
+        hidden = sum(
+            1 for i in range(self.device_list.count())
+            if self.device_list.item(i).isHidden() and self.device_list.item(i).checkState() == Qt.Checked
+        )
+        self.selection_summary_label.setText(selection_summary(checked, hidden))
 
     def _set_all_checked(self, checked: bool):
         """Check/uncheck only the devices the current filter shows."""
@@ -399,11 +420,7 @@ class MainWindow(QMainWindow):
         (see _on_retry_failed_clicked) so devices that already succeeded keep
         their results in the table and in any subsequent export.
         """
-        checked_devices = [
-            self.device_manager.list_devices()[i]
-            for i in range(self.device_list.count())
-            if self.device_list.item(i).checkState() == Qt.Checked
-        ]
+        checked_devices = self._checked_devices()
         if not checked_devices:
             QMessageBox.warning(self, "No devices selected", "Check at least one device to run against.")
             return

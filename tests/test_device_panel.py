@@ -115,3 +115,16 @@ def test_hiding_the_current_device_clears_it_so_edit_cannot_target_it(qapp):
     window.vendor_filter_combo.setCurrentText("Cisco (all)")
 
     assert window._selected_device_index() is None
+
+
+def test_selection_summary_updates_as_devices_are_checked_and_filtered(qapp):
+    window = _build_window(qapp)
+    assert window.selection_summary_label.text() == "Selected: 0"
+
+    window.device_list.item(0).setCheckState(Qt.Checked)  # core-1, Cisco IOS-XE
+    window.device_list.item(2).setCheckState(Qt.Checked)  # pe-1, Nokia SR OS
+    window.vendor_filter_combo.setCurrentText("Cisco (all)")
+
+    assert window.selection_summary_label.text() == (
+        "Selected: 2, Cisco IOS-XE 1 · Nokia SR OS 1 (1 hidden by filter)"
+    )
