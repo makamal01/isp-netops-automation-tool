@@ -474,6 +474,7 @@ The code is maintainable for a small team and a controlled desktop product. It i
 6. Add CI with tests, linting, dependency scanning, and packaging smoke tests.
 7. Add a formal migration layer for local stores.
 8. (Parked) Optional AI assistant add-on to explain output and failed validation layers. Only after the non-AI core is refined; see `AI_ASSISTANT_PARKED_NOTES.md` for research, decisions, and the first step.
+9. (Parked) Software upgrade suite: pre/post checks with rule-based comparison (read-only; a candidate for the small useful version), then readiness checks, then gated guided upgrades. See `SW_UPGRADE_SUITE_PARKED_NOTES.md`.
 8. Add role enforcement and centralized audit collection for team deployments.
 
 ## 14. Handoff Checklist
