@@ -351,7 +351,13 @@ class MainWindow(QMainWindow):
                 self.results_table.removeRow(row)
                 self.results_by_device.pop(name, None)
 
-    def _on_run_clicked(self, retry_devices=None):
+    def _on_run_clicked(self):
+        # Takes no arguments on purpose: QPushButton.clicked passes `checked`
+        # (False), which would otherwise land in `retry_devices` and turn every
+        # normal run into a retry of nothing.
+        self._start_run()
+
+    def _start_run(self, retry_devices=None):
         """Validate scope, reset run state, and start the worker-thread execution.
 
         `retry_devices`, when set, scopes the reset to just those device names
@@ -463,7 +469,7 @@ class MainWindow(QMainWindow):
             self.device_list.item(index).setCheckState(
                 Qt.Checked if device.name in failed_names else Qt.Unchecked
             )
-        self._on_run_clicked(retry_devices=failed_names)
+        self._start_run(retry_devices=failed_names)
 
     def _on_device_result(self, result: DeviceResult):
         self.results_by_device[result.device_name] = result
