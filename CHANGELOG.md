@@ -22,6 +22,8 @@ commit it came from.
 ### Fixed
 - Clicking **Run** a second time did nothing: the new run never started
   and the previous run's status and output stayed on screen.
+- Adding, editing, removing, or importing devices unchecked every device
+  in the list. Checks are now kept (and follow a renamed device).
 
 ## [0.1.0] - 2026-09-15
 
