@@ -199,3 +199,27 @@ def test_edit_rename_through_the_dialog_keeps_the_check(qapp):
         window._edit_selected_device()
 
     assert _checked_names(window) == ["pe-1-renamed"]
+
+
+def test_edit_rejected_by_inventory_shows_a_warning_and_changes_nothing(qapp):
+    window = _build_window(qapp)
+    window.device_manager.update_device.side_effect = ValueError("Device name 'core-1' already exists.")
+    window.device_list.item(2).setCheckState(Qt.Checked)  # pe-1
+    window.device_list.setCurrentRow(2)
+    dialog = MagicMock()
+    dialog.exec.return_value = main_window_module.QDialog.Accepted
+    dialog.result_data = {
+        "name": "core-1", "host": "10.246.111.1", "vendor": "Nokia SR OS",
+        "username": "admin", "port": 22, "password": "", "secret": "",
+    }
+    audit = MagicMock()
+
+    with patch.object(main_window_module, "DeviceDialog", return_value=dialog), \
+         patch.object(main_window_module, "audit_log", audit), \
+         patch.object(main_window_module.QMessageBox, "warning") as warning:
+        window._edit_selected_device()
+
+    warning.assert_called_once()
+    assert "already exists" in warning.call_args.args[2]
+    audit.log_event.assert_not_called()
+    assert _checked_names(window) == ["pe-1"]

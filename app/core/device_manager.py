@@ -117,6 +117,10 @@ class DeviceManager:
 
     def update_device(self, index: int, **kwargs):
         """Update inventory fields while preserving an omitted password/secret."""
+        if "name" in kwargs:
+            other_names = {d.name for i, d in enumerate(self.devices) if i != index}
+            if kwargs["name"] in other_names:
+                raise ValueError(f"Device name '{kwargs['name']}' already exists.")
         device = self.devices[index]
         if "password" in kwargs:
             device.password_encrypted = crypto.encrypt(kwargs.pop("password"))

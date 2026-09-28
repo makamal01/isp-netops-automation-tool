@@ -403,7 +403,11 @@ class MainWindow(QMainWindow):
                 update_kwargs["secret"] = data["secret"]
             # Read before update_device: it mutates this same Device object.
             old_name = device.name
-            self.device_manager.update_device(idx, **update_kwargs)
+            try:
+                self.device_manager.update_device(idx, **update_kwargs)
+            except ValueError as exc:
+                QMessageBox.warning(self, "Invalid device", str(exc))
+                return
             audit_log.log_event("device_edited", username=self.username, detail=data["name"])
             self._refresh_device_list(renamed={old_name: data["name"]})
 
