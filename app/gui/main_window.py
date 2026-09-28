@@ -7,11 +7,12 @@ from PySide6.QtWidgets import (
     QMainWindow, QWidget, QSplitter, QListWidget, QListWidgetItem, QPushButton,
     QVBoxLayout, QHBoxLayout, QPlainTextEdit, QTableWidget, QTableWidgetItem,
     QTextEdit, QLabel, QCheckBox, QFileDialog, QMessageBox, QInputDialog,
-    QLineEdit, QDialog, QProgressBar, QSpinBox
+    QLineEdit, QDialog, QProgressBar, QSpinBox, QComboBox
 )
 from PySide6.QtCore import Qt, QThread, QObject, Signal
 
 from app.core.device_manager import DeviceManager
+from app.core.device_filter import ALL_VENDORS, filter_options, matches
 from app.core.command_runner import run_bulk, DeviceResult, JumpServerError
 from app.core.command_safety import filter_safe_commands
 from app.core.report import build_text_report, format_device_output
@@ -117,6 +118,20 @@ class MainWindow(QMainWindow):
         left = QWidget()
         left_layout = QVBoxLayout()
         left_layout.addWidget(QLabel("Devices (check to include in run):"))
+
+        filter_row = QHBoxLayout()
+        self.vendor_filter_combo = QComboBox()
+        self.vendor_filter_combo.addItems(filter_options())
+        self.vendor_filter_combo.setToolTip("Show only devices of this vendor. Checked devices stay checked when hidden.")
+        self.vendor_filter_combo.currentTextChanged.connect(self._apply_device_filter)
+        filter_row.addWidget(self.vendor_filter_combo)
+        self.device_search_edit = QLineEdit()
+        self.device_search_edit.setPlaceholderText("Search name or IP")
+        self.device_search_edit.setClearButtonEnabled(True)
+        self.device_search_edit.textChanged.connect(self._apply_device_filter)
+        filter_row.addWidget(self.device_search_edit)
+        left_layout.addLayout(filter_row)
+
         self.device_list = QListWidget()
         left_layout.addWidget(self.device_list)
 
@@ -241,6 +256,18 @@ class MainWindow(QMainWindow):
             item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
             item.setCheckState(Qt.Unchecked)
             self.device_list.addItem(item)
+        self._apply_device_filter()
+
+    def _apply_device_filter(self):
+        # Items are hidden, never removed, so list row i stays aligned with
+        # device_manager.list_devices()[i], which run/edit/remove rely on.
+        vendor_option = self.vendor_filter_combo.currentText() or ALL_VENDORS
+        search_text = self.device_search_edit.text()
+        for index, device in enumerate(self.device_manager.list_devices()):
+            self.device_list.item(index).setHidden(not matches(device, vendor_option, search_text))
+        current = self.device_list.currentItem()
+        if current is not None and current.isHidden():
+            self.device_list.setCurrentRow(-1)
 
     def _set_all_checked(self, checked: bool):
         state = Qt.Checked if checked else Qt.Unchecked
