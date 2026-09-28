@@ -475,6 +475,7 @@ The code is maintainable for a small team and a controlled desktop product. It i
 7. Add a formal migration layer for local stores.
 8. (Parked) Optional AI assistant add-on to explain output and failed validation layers. Only after the non-AI core is refined; see `AI_ASSISTANT_PARKED_NOTES.md` for research, decisions, and the first step.
 9. (Parked) Software upgrade suite: pre/post checks with rule-based comparison (read-only; a candidate for the small useful version), then readiness checks, then gated guided upgrades. See `SW_UPGRADE_SUITE_PARKED_NOTES.md`.
+10. (Parked) Device inventory at scale: show the device list as a sortable table (Name / Host / Vendor), add tags or groups (site, role, customer) and saved selections, and per-vendor command sets so one mixed run sends the right syntax to each vendor (build on the validation engine's per-vendor command profiles).
 8. Add role enforcement and centralized audit collection for team deployments.
 
 ## 14. Handoff Checklist
