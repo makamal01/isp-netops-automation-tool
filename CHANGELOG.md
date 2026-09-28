@@ -7,6 +7,15 @@ commit it came from.
 
 ## [Unreleased]
 
+### Added
+- **Reset** button to clear the device status table and output between runs.
+- **Refresh** button above the Output pane to redisplay the selected
+  device's stored output.
+
+### Fixed
+- Clicking **Run** a second time did nothing: the new run never started
+  and the previous run's status and output stayed on screen.
+
 ## [0.1.0] - 2026-09-15
 
 First tagged baseline. A Windows desktop app for NOC/network engineers to
