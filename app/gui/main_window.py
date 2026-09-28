@@ -259,12 +259,28 @@ class MainWindow(QMainWindow):
 
     # ---------- Device management ----------
 
-    def _refresh_device_list(self):
+    def _refresh_device_list(self, renamed=None):
+        """Rebuild the list from inventory, keeping each device's check state.
+
+        Checks are carried by device name read from the old items themselves:
+        after a remove the inventory has already shifted, so row positions
+        no longer identify the same device. `renamed` maps old -> new name
+        so an edited device keeps its check.
+        """
+        renamed = renamed or {}
+        checked_names = set()
+        for i in range(self.device_list.count()):
+            item = self.device_list.item(i)
+            if item.checkState() == Qt.Checked:
+                name = item.data(Qt.UserRole)
+                checked_names.add(renamed.get(name, name))
+
         self.device_list.clear()
         for device in self.device_manager.list_devices():
             item = QListWidgetItem(f"{device.name} ({device.host}) - {device.vendor}")
+            item.setData(Qt.UserRole, device.name)
             item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
-            item.setCheckState(Qt.Unchecked)
+            item.setCheckState(Qt.Checked if device.name in checked_names else Qt.Unchecked)
             self.device_list.addItem(item)
         self._apply_device_filter()
 
@@ -385,9 +401,11 @@ class MainWindow(QMainWindow):
                 update_kwargs["password"] = data["password"]
             if data["secret"]:
                 update_kwargs["secret"] = data["secret"]
+            # Read before update_device: it mutates this same Device object.
+            old_name = device.name
             self.device_manager.update_device(idx, **update_kwargs)
             audit_log.log_event("device_edited", username=self.username, detail=data["name"])
-            self._refresh_device_list()
+            self._refresh_device_list(renamed={old_name: data["name"]})
 
     def _remove_selected_device(self):
         idx = self._selected_device_index()

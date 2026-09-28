@@ -1,13 +1,15 @@
 """Device inventory panel: filtering, visible-only selection, and the
 selection summary, driven through the real widgets."""
 
-from unittest.mock import MagicMock
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
 
 import pytest
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QApplication, QMainWindow
 
 from app.core.deployment_policy import DeploymentPolicy
+from app.gui import main_window as main_window_module
 from app.gui.main_window import MainWindow
 
 
@@ -128,3 +130,72 @@ def test_selection_summary_updates_as_devices_are_checked_and_filtered(qapp):
     assert window.selection_summary_label.text() == (
         "Selected: 2, Cisco IOS-XE 1 · Nokia SR OS 1 (1 hidden by filter)"
     )
+
+
+def _set_inventory(window, rows):
+    window.device_manager.list_devices.return_value = [_device(*row) for row in rows]
+
+
+def test_adding_a_device_keeps_existing_checks(qapp):
+    window = _build_window(qapp)
+    window.device_list.item(0).setCheckState(Qt.Checked)  # core-1
+    window.device_list.item(2).setCheckState(Qt.Checked)  # pe-1
+
+    _set_inventory(window, INVENTORY + [("new-1", "10.246.1.1", "Cisco IOS-XE")])
+    window._refresh_device_list()
+
+    assert _checked_names(window) == ["core-1", "pe-1"]
+
+
+def test_removing_a_device_keeps_checks_on_the_remaining_devices(qapp):
+    window = _build_window(qapp)
+    window.device_list.item(2).setCheckState(Qt.Checked)  # pe-1
+
+    _set_inventory(window, [row for row in INVENTORY if row[0] != "core-2"])
+    window._refresh_device_list()
+
+    assert _checked_names(window) == ["pe-1"]
+
+
+def test_renaming_a_checked_device_keeps_it_checked(qapp):
+    window = _build_window(qapp)
+    window.device_list.item(2).setCheckState(Qt.Checked)  # pe-1
+
+    _set_inventory(window, [row if row[0] != "pe-1" else ("pe-1-new", row[1], row[2]) for row in INVENTORY])
+    window._refresh_device_list(renamed={"pe-1": "pe-1-new"})
+
+    assert _checked_names(window) == ["pe-1-new"]
+
+
+def test_selection_summary_reflects_checks_kept_after_rebuild(qapp):
+    window = _build_window(qapp)
+    window.device_list.item(0).setCheckState(Qt.Checked)
+
+    _set_inventory(window, INVENTORY + [("new-1", "10.246.1.1", "Cisco IOS-XE")])
+    window._refresh_device_list()
+
+    assert window.selection_summary_label.text() == "Selected: 1, Cisco IOS-XE 1"
+
+
+def test_edit_rename_through_the_dialog_keeps_the_check(qapp):
+    """update_device mutates the same Device object the handler holds, so
+    the old name must be captured before the update."""
+    window = _build_window(qapp)
+    devices = window.device_manager.list_devices()
+    window.device_manager.list_devices.side_effect = lambda: list(devices)
+    window.device_manager.update_device.side_effect = (
+        lambda index, **fields: setattr(devices[index], "name", fields["name"])
+    )
+    window.device_list.item(2).setCheckState(Qt.Checked)  # pe-1
+    window.device_list.setCurrentRow(2)
+    dialog = MagicMock()
+    dialog.exec.return_value = main_window_module.QDialog.Accepted
+    dialog.result_data = {
+        "name": "pe-1-renamed", "host": "10.246.111.1", "vendor": "Nokia SR OS",
+        "username": "admin", "port": 22, "password": "", "secret": "",
+    }
+
+    with patch.object(main_window_module, "DeviceDialog", return_value=dialog),          patch.object(main_window_module, "audit_log", MagicMock()):
+        window._edit_selected_device()
+
+    assert _checked_names(window) == ["pe-1-renamed"]
