@@ -24,6 +24,8 @@ commit it came from.
   and the previous run's status and output stayed on screen.
 - Adding, editing, removing, or importing devices unchecked every device
   in the list. Checks are now kept (and follow a renamed device).
+- Editing a device allowed renaming it to a name another device already
+  had. The rename is now rejected with a warning, as when adding.
 
 ## [0.1.0] - 2026-09-15
 
