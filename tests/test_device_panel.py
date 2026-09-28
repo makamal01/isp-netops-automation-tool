@@ -83,6 +83,31 @@ def test_filter_is_reapplied_after_the_device_list_is_rebuilt(qapp):
     assert _visible_names(window) == ["pe-1"]
 
 
+def _checked_names(window):
+    devices = window.device_manager.list_devices()
+    return [devices[i].name for i in range(window.device_list.count())
+            if window.device_list.item(i).checkState() == Qt.Checked]
+
+
+def test_select_all_only_checks_visible_devices(qapp):
+    window = _build_window(qapp)
+    window.vendor_filter_combo.setCurrentText("Cisco (all)")
+
+    window._set_all_checked(True)
+
+    assert _checked_names(window) == ["core-1", "core-2"]
+
+
+def test_select_none_leaves_hidden_devices_checked(qapp):
+    window = _build_window(qapp)
+    window._set_all_checked(True)
+    window.vendor_filter_combo.setCurrentText("Cisco (all)")
+
+    window._set_all_checked(False)
+
+    assert _checked_names(window) == ["pe-1", "hw-1"]
+
+
 def test_hiding_the_current_device_clears_it_so_edit_cannot_target_it(qapp):
     window = _build_window(qapp)
     window.device_list.setCurrentRow(2)  # pe-1 (Nokia)

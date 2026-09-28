@@ -270,9 +270,12 @@ class MainWindow(QMainWindow):
             self.device_list.setCurrentRow(-1)
 
     def _set_all_checked(self, checked: bool):
+        """Check/uncheck only the devices the current filter shows."""
         state = Qt.Checked if checked else Qt.Unchecked
         for i in range(self.device_list.count()):
-            self.device_list.item(i).setCheckState(state)
+            item = self.device_list.item(i)
+            if not item.isHidden():
+                item.setCheckState(state)
 
     def _add_device(self):
         dialog = DeviceDialog(jump_server_manager=self.jump_server_manager, username=self.username)
